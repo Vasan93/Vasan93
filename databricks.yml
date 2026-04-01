@@ -18,6 +18,20 @@ variables:
   powerbi_dataset_id:
     description: Power BI dataset ID
     default: ""
+  cluster_id:
+    description: Shared cluster ID (must have coworker-agent package installed)
+    default: ""
+
+# Sync the full repo (app + src + databricks + notebooks) to workspace
+sync:
+  include:
+    - "app/**"
+    - "src/**"
+    - "databricks/**"
+    - "notebooks/**"
+    - "copilot_studio/**"
+    - "pyproject.toml"
+    - "requirements.txt"
 
 targets:
   dev:
@@ -33,44 +47,58 @@ targets:
     run_as:
       service_principal_name: coworker-agent-sp
 
-# ── Databricks App (FastAPI REST API) ─────────────────────────────────────
 resources:
+  # ── Databricks App (FastAPI REST API) ───────────────────────────────────
   apps:
     coworker-agent-app:
       name: coworker-agent
       description: >
-        Co-Worker Agent REST API — serves chat, monitoring, knowledge base,
-        and onboarding endpoints.  Teams and Copilot Studio connect here.
-      source_code_path: ./app
+        Co-Worker Agent REST API — chat, pipeline monitoring, knowledge base,
+        and onboarding.  Teams Bot Framework and Copilot Studio connect here.
+      source_code_path: .
       config:
         command:
+          - pip
+          - install
+          - -e
+          - .
+          - "&&"
           - uvicorn
           - app.main:app
           - --host=0.0.0.0
           - --port=8000
       resources:
         - name: coworker-cluster
-          description: Shared cluster for Spark access
+          description: Shared cluster with Spark access for DQ tools
           cluster:
-            existing_cluster_id: ${COWORKER_CLUSTER_ID}
+            existing_cluster_id: ${var.cluster_id}
 
-  # ── Proactive Monitor Job ─────────────────────────────────────────────
+  # ── Scheduled Jobs ──────────────────────────────────────────────────────
   jobs:
+    # Proactive Monitor — runs every 30 min
     proactive_monitor:
       name: "[CoWorker] Proactive Monitor"
       description: >
-        Runs every 30 minutes to check ADF, Databricks workflows, and Power BI
-        for failures.  Diagnoses root causes, attempts auto-recovery, validates
-        post-load data quality, and alerts the team via Teams.
+        Checks ADF, Databricks workflows, and Power BI for failures every
+        30 minutes.  Diagnoses root causes, auto-recovers transient failures,
+        validates post-load data, and alerts the team via Teams.
       schedule:
         quartz_cron_expression: "0 0/30 * * * ?"
         timezone_id: Asia/Dubai
       tasks:
         - task_key: run_monitor
-          notebook_task:
-            notebook_path: ./databricks/jobs/proactive_monitor.py
-            source: WORKSPACE
-          existing_cluster_id: ${COWORKER_CLUSTER_ID}
+          spark_python_task:
+            python_file: ./databricks/jobs/proactive_monitor.py
+          existing_cluster_id: ${var.cluster_id}
+          libraries:
+            - pypi:
+                package: openai>=1.60.0
+            - pypi:
+                package: azure-identity>=1.19.0
+            - pypi:
+                package: azure-mgmt-datafactory>=9.0.0
+            - pypi:
+                package: httpx>=0.28.0
       parameters:
         - name: ADF_RESOURCE_GROUP
           default: ${var.adf_resource_group}
@@ -86,7 +114,7 @@ resources:
       max_retries: 1
       timeout_seconds: 600
 
-    # ── Conversation cleanup job ──────────────────────────────────────────
+    # Conversation Cleanup — daily at 2 AM
     conversation_cleanup:
       name: "[CoWorker] Conversation Cleanup"
       description: Purge conversation history older than 24 hours.
@@ -97,4 +125,4 @@ resources:
         - task_key: cleanup
           spark_python_task:
             python_file: ./databricks/jobs/cleanup.py
-          existing_cluster_id: ${COWORKER_CLUSTER_ID}
+          existing_cluster_id: ${var.cluster_id}

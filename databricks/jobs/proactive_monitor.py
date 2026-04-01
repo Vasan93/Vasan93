@@ -21,8 +21,15 @@ widget parameters.
 
 import json
 import logging
+import sys
 import asyncio
 from datetime import datetime, timezone
+from pathlib import Path
+
+# Ensure repo root is on sys.path (Databricks jobs run from workspace root)
+_REPO_ROOT = str(Path(__file__).resolve().parent.parent.parent)
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 log = logging.getLogger("proactive_monitor")

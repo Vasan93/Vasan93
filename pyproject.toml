@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=70.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coworker-agent"
+version = "1.0.0"
+description = "Co-Worker Agent for Yas Entertainment / Miral Parks — Databricks + GPT-5.1"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.60.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.10.0",
+    "httpx>=0.28.0",
+    "azure-identity>=1.19.0",
+    "azure-mgmt-datafactory>=9.0.0",
+    "databricks-sdk>=0.38.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "httpx"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "app*"]

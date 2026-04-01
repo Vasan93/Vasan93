@@ -1,0 +1,225 @@
+openapi: "3.0.3"
+info:
+  title: Co-Worker Agent — Yas Entertainment
+  description: |
+    Intelligent co-worker agent for data quality monitoring, pipeline health,
+    code understanding, and onboarding.  Connect this API as a Copilot Studio
+    custom connector to enable Teams chat integration.
+  version: "1.0.0"
+
+servers:
+  - url: https://{databricks-app-host}
+    description: Databricks App endpoint
+    variables:
+      databricks-app-host:
+        default: your-workspace.cloud.databricks.com/apps/coworker-agent
+
+paths:
+  /chat:
+    post:
+      operationId: chatWithAgent
+      summary: Send a message to the Co-Worker Agent
+      description: |
+        Main conversation endpoint.  Send a user message, get an AI response.
+        Pass conversation_id to maintain multi-turn context.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: Agent reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "500":
+          description: Agent error
+
+  /monitor/trigger:
+    post:
+      operationId: triggerHealthCheck
+      summary: Run a data quality health check on monitored tables
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tables:
+                  type: array
+                  items:
+                    type: string
+                  description: Tables to check (omit for defaults)
+      responses:
+        "200":
+          description: Health check results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /monitor/pipelines:
+    post:
+      operationId: checkPipelines
+      summary: Check ADF, Databricks, and Power BI pipeline status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PipelineCheckRequest"
+      responses:
+        "200":
+          description: Pipeline status across all three platforms
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /knowledge-base:
+    get:
+      operationId: listKnowledgeBase
+      summary: List knowledge base articles
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum:
+              - DATA_QUALITY
+              - ONBOARDING
+              - BUSINESS_LOGIC
+              - ETL
+              - SCHEMA
+              - GENERAL
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of articles
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /glossary:
+    get:
+      operationId: getGlossary
+      summary: Look up business terms in the glossary
+      parameters:
+        - name: term
+          in: query
+          schema:
+            type: string
+          description: Term to search for (omit for full glossary)
+      responses:
+        "200":
+          description: Glossary results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /onboarding/{role}:
+    get:
+      operationId: getOnboardingPlan
+      summary: Get structured onboarding plan for a role
+      parameters:
+        - name: role
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - data_engineer
+              - business_analyst
+              - new_developer
+      responses:
+        "200":
+          description: Structured onboarding plan
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          description: Role not found
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: User's question or command
+        conversation_id:
+          type: string
+          description: Thread ID to continue a conversation (omit to start new)
+        user_name:
+          type: string
+          default: anonymous
+          description: Display name of the requester
+
+    ChatResponse:
+      type: object
+      properties:
+        conversation_id:
+          type: string
+        reply:
+          type: string
+          description: The agent's response (Markdown formatted)
+        tools_used:
+          type: array
+          items:
+            type: string
+
+    PipelineCheckRequest:
+      type: object
+      properties:
+        hours_back:
+          type: integer
+          default: 24
+          description: How many hours back to check
+        adf_resource_group:
+          type: string
+        adf_factory_name:
+          type: string
+        powerbi_workspace_id:
+          type: string
+        powerbi_dataset_id:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Databricks personal access token or service principal token
+
+security:
+  - bearerAuth: []

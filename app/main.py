@@ -19,7 +19,14 @@ Endpoints:
 from __future__ import annotations
 import json
 import logging
+import sys
 import uuid
+from pathlib import Path
+
+# Ensure repo root is on sys.path so `from src.coworker...` works everywhere
+_REPO_ROOT = str(Path(__file__).resolve().parent.parent)
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -146,7 +153,10 @@ def _get_bot_handler():
     global _bot_handler
     if _bot_handler is None:
         from src.coworker.config import cfg
-        from app.teams_handler import TeamsBotHandler
+        try:
+            from .teams_handler import TeamsBotHandler
+        except ImportError:
+            from app.teams_handler import TeamsBotHandler
         _bot_handler = TeamsBotHandler(cfg.TEAMS_APP_ID, cfg.TEAMS_APP_PASSWORD)
     return _bot_handler
 
