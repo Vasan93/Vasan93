@@ -19,7 +19,10 @@ azure-mgmt-datafactory>=9.0.0
 # ── Databricks SDK (workflow monitoring) ──────────────────────────────────
 databricks-sdk>=0.38.0
 
+# ── Databricks SQL Connector (serverless mode — Databricks Apps) ─────────
+databricks-sql-connector>=3.6.0
+
 # ── Already available on Databricks Runtime ───────────────────────────────
-# pyspark        (cluster runtime)
+# pyspark        (cluster runtime — used when SparkSession available)
 # delta-spark    (cluster runtime)
 # requests       (cluster runtime)

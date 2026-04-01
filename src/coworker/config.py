@@ -38,6 +38,15 @@ def _secret(scope: str, key: str, env_fallback: str) -> str:
         return val
 
 
+def _secret_optional(scope: str, key: str, env_fallback: str) -> str:
+    """Like _secret but returns empty string instead of raising."""
+    try:
+        from databricks.sdk.runtime import dbutils  # noqa: PLC0415
+        return dbutils.secrets.get(scope=scope, key=key)
+    except Exception:
+        return os.getenv(env_fallback, "")
+
+
 class Config:
     # ── Azure AI Foundry / GPT-5.1 ──────────────────────────────────────────
     FOUNDRY_ENDPOINT: str = _secret(
@@ -68,6 +77,21 @@ class Config:
     # The catalog and schema where the agent stores its state tables
     AGENT_CATALOG: str = os.getenv("AGENT_CATALOG", "miral_coworker")
     AGENT_SCHEMA: str  = os.getenv("AGENT_SCHEMA",  "agent_state")
+
+    # ── SQL Warehouse (for Databricks Apps / serverless mode) ────────────────
+    # When set, the agent uses databricks-sql-connector instead of SparkSession.
+    # This allows the FastAPI app to run as a Databricks App (no cluster needed).
+    # Format: /sql/1.0/warehouses/<warehouse-id>
+    SQL_WAREHOUSE_PATH: str = _secret_optional(
+        "coworker-agent", "sql-warehouse-path", "SQL_WAREHOUSE_PATH"
+    )
+    DATABRICKS_HOST: str = os.getenv(
+        "DATABRICKS_HOST",
+        os.getenv("DATABRICKS_SERVER_HOSTNAME", ""),
+    )
+    DATABRICKS_TOKEN: str = _secret_optional(
+        "coworker-agent", "databricks-token", "DATABRICKS_TOKEN"
+    )
 
     # Tables watched by the proactive monitor (comma-separated)
     MONITORED_TABLES: list[str] = [

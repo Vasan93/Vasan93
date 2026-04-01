@@ -19,7 +19,10 @@ variables:
     description: Power BI dataset ID
     default: ""
   cluster_id:
-    description: Shared cluster ID (must have coworker-agent package installed)
+    description: Shared cluster ID (for scheduled jobs that need Spark)
+    default: ""
+  sql_warehouse_path:
+    description: SQL Warehouse HTTP path (for Databricks App — no cluster needed)
     default: ""
 
 # Sync the full repo (app + src + databricks + notebooks) to workspace
@@ -67,11 +70,16 @@ resources:
           - app.main:app
           - --host=0.0.0.0
           - --port=8000
+        env:
+          - name: SQL_WAREHOUSE_PATH
+            value: ${var.sql_warehouse_path}
+          - name: DATABRICKS_HOST
+            value: ${DATABRICKS_HOST}
       resources:
-        - name: coworker-cluster
-          description: Shared cluster with Spark access for DQ tools
-          cluster:
-            existing_cluster_id: ${var.cluster_id}
+        - name: coworker-sql-warehouse
+          description: Serverless SQL Warehouse for data queries (no cluster needed)
+          sql_warehouse:
+            existing_warehouse_id: ${var.sql_warehouse_path}
 
   # ── Scheduled Jobs ──────────────────────────────────────────────────────
   jobs:

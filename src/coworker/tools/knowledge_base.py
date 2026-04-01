@@ -23,21 +23,15 @@ import uuid
 from datetime import datetime, timezone
 
 from ..config import cfg
+from ..db_client import get_db
 
 _KB_TABLE = f"{cfg.AGENT_CATALOG}.{cfg.AGENT_SCHEMA}.knowledge_base"
 
 
-def _spark():
-    from pyspark.sql import SparkSession  # noqa: PLC0415
-    s = SparkSession.getActiveSession()
-    if s is None:
-        raise RuntimeError("No active SparkSession.  Run inside a Databricks cluster.")
-    return s
-
-
 def _ensure_table() -> None:
     """Create the knowledge base table if it doesn't exist."""
-    _spark().sql(f"""
+    db = get_db()
+    db.execute(f"""
         CREATE TABLE IF NOT EXISTS {_KB_TABLE} (
             article_id      STRING,
             category        STRING,
@@ -64,27 +58,30 @@ def save_article(
     created_by: str = "co-worker-agent",
 ) -> str:
     _ensure_table()
-    spark = _spark()
-    from pyspark.sql import Row  # noqa: PLC0415
-    from pyspark.sql.functions import lit  # noqa: PLC0415
+    db = get_db()
 
     now = datetime.now(timezone.utc)
     article_id = str(uuid.uuid4())
     embedding_text = f"{title}. {content[:500]}"
 
-    row = Row(
-        article_id=article_id,
-        category=category.upper(),
-        title=title,
-        content=content,
-        tags=tags or [],
-        created_by=created_by,
-        created_at=now,
-        updated_at=now,
-        embedding_text=embedding_text,
-    )
+    tags_sql = "ARRAY(" + ", ".join(f"'{t}'" for t in (tags or [])) + ")"
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    spark.createDataFrame([row]).write.format("delta").mode("append").saveAsTable(_KB_TABLE)
+    db.execute(f"""
+        INSERT INTO {_KB_TABLE}
+        (article_id, category, title, content, tags, created_by, created_at, updated_at, embedding_text)
+        VALUES (
+            '{article_id}',
+            '{category.upper()}',
+            '{title.replace("'", "''")}',
+            '{content.replace("'", "''")}',
+            {tags_sql},
+            '{created_by.replace("'", "''")}',
+            TIMESTAMP '{now_str}',
+            TIMESTAMP '{now_str}',
+            '{embedding_text.replace("'", "''")}'
+        )
+    """)
 
     return json.dumps({
         "status": "saved",
@@ -100,7 +97,7 @@ def search_articles(query: str, category: str | None = None, limit: int = 5) -> 
     Databricks Runtime 13+ supports CONTAINS / LIKE; we use LIKE for broadest compatibility.
     """
     _ensure_table()
-    spark = _spark()
+    db = get_db()
 
     terms = [t.strip() for t in query.lower().split() if len(t.strip()) > 2]
     if not terms:
@@ -113,16 +110,15 @@ def search_articles(query: str, category: str | None = None, limit: int = 5) -> 
     )
     cat_filter = f"AND category = '{category.upper()}'" if category else ""
 
-    rows = spark.sql(f"""
+    articles = db.execute(f"""
         SELECT article_id, category, title, LEFT(content, 600) AS excerpt,
                tags, created_by, updated_at
         FROM {_KB_TABLE}
         WHERE {conditions} {cat_filter}
         ORDER BY updated_at DESC
         LIMIT {limit}
-    """).collect()
+    """)
 
-    articles = [r.asDict() for r in rows]
     return json.dumps({
         "query": query,
         "results_found": len(articles),
@@ -133,28 +129,30 @@ def search_articles(query: str, category: str | None = None, limit: int = 5) -> 
 def get_article(article_id: str) -> str:
     """Retrieve a full article by ID."""
     _ensure_table()
-    rows = _spark().sql(
+    db = get_db()
+    rows = db.execute(
         f"SELECT * FROM {_KB_TABLE} WHERE article_id = '{article_id}'"
-    ).collect()
+    )
     if not rows:
         return json.dumps({"error": f"Article '{article_id}' not found."})
-    return json.dumps(rows[0].asDict(), default=str)
+    return json.dumps(rows[0], default=str)
 
 
 def list_articles(category: str | None = None, limit: int = 20) -> str:
     """List article titles and IDs, optionally filtered by category."""
     _ensure_table()
+    db = get_db()
     cat_filter = f"WHERE category = '{category.upper()}'" if category else ""
-    rows = _spark().sql(f"""
+    articles = db.execute(f"""
         SELECT article_id, category, title, tags, updated_at
         FROM {_KB_TABLE}
         {cat_filter}
         ORDER BY updated_at DESC
         LIMIT {limit}
-    """).collect()
+    """)
     return json.dumps({
-        "total": len(rows),
-        "articles": [r.asDict() for r in rows],
+        "total": len(articles),
+        "articles": articles,
     }, default=str)
 
 

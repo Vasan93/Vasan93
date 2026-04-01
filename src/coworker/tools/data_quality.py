@@ -5,9 +5,8 @@ These tools give the agent the ability to run live, intelligent checks against
 the Databricks / Snowflake tables.  Each function returns a structured JSON
 string that the LLM can reason over.
 
-All Spark operations use the active SparkSession (available on any Databricks
-cluster).  Outside Databricks, SparkSession.getActiveSession() returns None
-and the functions raise a clear error rather than silently failing.
+Uses db_client for database access — works on both Databricks clusters
+(SparkSession) and Databricks Apps (SQL Connector to a serverless warehouse).
 """
 
 from __future__ import annotations
@@ -17,19 +16,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ..config import cfg
+from ..db_client import get_db
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
-
-def _spark():
-    from pyspark.sql import SparkSession  # noqa: PLC0415
-    spark = SparkSession.getActiveSession()
-    if spark is None:
-        raise RuntimeError(
-            "No active SparkSession found.  Run this tool inside a Databricks cluster."
-        )
-    return spark
-
 
 def _safe_table(name: str) -> str:
     """Validate table name to prevent SQL injection."""
@@ -49,12 +39,12 @@ def check_row_count_anomaly(table: str, date_col: str = "auto") -> str:
     Compare today's row count against a 30-day rolling mean + 2-sigma threshold.
     Returns severity, z-score, and a plain-language explanation.
     """
-    spark = _spark()
+    db = get_db()
     tbl = _safe_table(table)
 
     # Auto-detect a date column if not specified
     if date_col == "auto":
-        cols = [c.name.lower() for c in spark.table(tbl).schema]
+        cols = [c["name"].lower() for c in db.get_columns(tbl)]
         candidates = [c for c in cols if "date" in c and "key" not in c]
         date_col = candidates[0] if candidates else None
 
@@ -87,7 +77,7 @@ def check_row_count_anomaly(table: str, date_col: str = "auto") -> str:
         CROSS JOIN stats s
         WHERE d.load_date = CURRENT_DATE()
     """
-    rows = spark.sql(sql).collect()
+    rows = db.execute(sql)
 
     if not rows:
         return _to_json({
@@ -100,7 +90,7 @@ def check_row_count_anomaly(table: str, date_col: str = "auto") -> str:
             ),
         })
 
-    row = rows[0].asDict()
+    row = rows[0]
     z = float(row.get("z_score") or 0)
     count = int(row.get("row_count", 0))
     mean = float(row.get("mean_count") or 0)
@@ -143,16 +133,14 @@ def check_data_freshness(table: str, max_hours_stale: float = 4.0) -> str:
     """
     Check when the table was last modified and whether it exceeds the SLA.
     """
-    spark = _spark()
+    db = get_db()
     tbl = _safe_table(table)
 
     # Use DESCRIBE HISTORY (Delta) for last write timestamp
     try:
-        hist = spark.sql(
-            f"DESCRIBE HISTORY {tbl} LIMIT 1"
-        ).collect()
+        hist = db.execute(f"DESCRIBE HISTORY {tbl} LIMIT 1")
         if hist:
-            last_op = hist[0].asDict()
+            last_op = hist[0]
             ts_str = str(last_op.get("timestamp", ""))
             last_ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
         else:
@@ -195,12 +183,12 @@ def check_null_rates(
     Check null rates for specified columns (or all columns if none given).
     Returns columns that exceed the threshold.
     """
-    spark = _spark()
+    db = get_db()
     tbl = _safe_table(table)
 
     if columns is None:
-        columns = [c.name for c in spark.table(tbl).schema
-                   if "key" in c.name.lower() or "id" in c.name.lower()]
+        columns = [c["name"] for c in db.get_columns(tbl)
+                   if "key" in c["name"].lower() or "id" in c["name"].lower()]
         columns = columns[:20]  # cap to avoid mega-queries
 
     exprs = [
@@ -208,10 +196,10 @@ def check_null_rates(
         f"/ COUNT(*), 2) AS `{c}`"
         for c in columns
     ]
-    row = spark.sql(
+    row = db.execute(
         f"SELECT {', '.join(exprs)} FROM {tbl} "
         f"LIMIT {cfg.DQ_SAMPLE_ROWS}"
-    ).collect()[0].asDict()
+    )[0]
 
     issues = [
         {"column": col, "null_pct": pct, "severity": "HIGH" if pct > 20 else "MEDIUM"}
@@ -239,10 +227,10 @@ def check_schema_drift(table: str, expected_columns: list[str]) -> str:
     Compare the live schema to an expected column list.
     Returns added / removed / type-changed columns.
     """
-    spark = _spark()
+    db = get_db()
     tbl = _safe_table(table)
 
-    live_cols = {c.name: str(c.dataType) for c in spark.table(tbl).schema}
+    live_cols = {c["name"]: c["type"] for c in db.get_columns(tbl)}
     live_set = set(live_cols.keys())
     expected_set = set(expected_columns)
 
@@ -278,16 +266,16 @@ def check_cross_table_type_consistency(
     Check whether a shared column has the same data type across all three
     primary tables.  Returns a comparison matrix and severity.
     """
-    spark = _spark()
+    db = get_db()
     if tables is None:
         tables = cfg.MONITORED_TABLES
 
     result: dict[str, str | None] = {}
     for tbl in tables:
         try:
-            schema = spark.table(_safe_table(tbl)).schema
+            cols = db.get_columns(_safe_table(tbl))
             match = next(
-                (str(c.dataType) for c in schema if c.name.lower() == column_name.lower()),
+                (c["type"] for c in cols if c["name"].lower() == column_name.lower()),
                 None,
             )
             result[tbl] = match
@@ -327,7 +315,7 @@ def check_join_integrity(
     Count orphaned keys: records in left_table whose key_column value does
     not exist in right_table.  Optionally filter to a specific date.
     """
-    spark = _spark()
+    db = get_db()
     lt = _safe_table(left_table)
     rt = _safe_table(right_table)
 
@@ -345,7 +333,7 @@ def check_join_integrity(
         LEFT JOIN {rt} r USING (`{key_column}`)
         {date_filter}
     """
-    row = spark.sql(sql).collect()[0].asDict()
+    row = db.execute(sql)[0]
     orphan_pct = float(row.get("orphan_pct") or 0)
 
     if orphan_pct > 10:
@@ -385,9 +373,8 @@ def run_dq_query(sql: str, description: str = "") -> str:
     if not stripped.startswith("SELECT"):
         return _to_json({"error": "Only SELECT statements are allowed."})
 
-    spark = _spark()
-    rows = spark.sql(sql).limit(200).collect()
-    records = [r.asDict() for r in rows]
+    db = get_db()
+    records = db.execute(sql, limit=200)
 
     return _to_json({
         "description": description,

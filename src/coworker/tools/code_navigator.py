@@ -11,14 +11,7 @@ import json
 import re
 
 from ..config import cfg
-
-
-def _spark():
-    from pyspark.sql import SparkSession
-    s = SparkSession.getActiveSession()
-    if s is None:
-        raise RuntimeError("No active SparkSession.")
-    return s
+from ..db_client import get_db
 
 
 def _dbutils():
@@ -124,19 +117,18 @@ def describe_table(table: str) -> str:
     Return the full schema (columns, types, comments) of a Delta table or
     Snowflake view via DESCRIBE TABLE EXTENDED.
     """
-    spark = _spark()
+    db = get_db()
     safe = table.strip()
     if not re.fullmatch(r"[\w.]+", safe):
         return json.dumps({"error": f"Invalid table name: {safe}"})
 
     try:
-        rows = spark.sql(f"DESCRIBE TABLE EXTENDED {safe}").collect()
+        rows = db.execute(f"DESCRIBE TABLE EXTENDED {safe}")
         columns = []
         metadata = {}
         in_metadata = False
 
-        for row in rows:
-            d = row.asDict()
+        for d in rows:
             col_name = (d.get("col_name") or "").strip()
             data_type = (d.get("data_type") or "").strip()
 
@@ -172,31 +164,31 @@ def search_code(keyword: str, catalog: str | None = None) -> str:
     Search for a keyword across table/column names in INFORMATION_SCHEMA.
     Useful for finding where a business concept lives in the warehouse.
     """
-    spark = _spark()
+    db = get_db()
     cat = catalog or cfg.AGENT_CATALOG
 
     try:
         # Search column names
-        col_rows = spark.sql(f"""
+        col_rows = db.execute(f"""
             SELECT table_catalog, table_schema, table_name, column_name, data_type
             FROM {cat}.information_schema.columns
             WHERE LOWER(column_name) LIKE '%{keyword.lower()}%'
             ORDER BY table_schema, table_name, ordinal_position
             LIMIT 50
-        """).collect()
+        """)
 
         # Search table names
-        tbl_rows = spark.sql(f"""
+        tbl_rows = db.execute(f"""
             SELECT table_catalog, table_schema, table_name, table_type
             FROM {cat}.information_schema.tables
             WHERE LOWER(table_name) LIKE '%{keyword.lower()}%'
             LIMIT 20
-        """).collect()
+        """)
 
         return json.dumps({
             "keyword": keyword,
-            "matching_columns": [r.asDict() for r in col_rows],
-            "matching_tables":  [r.asDict() for r in tbl_rows],
+            "matching_columns": col_rows,
+            "matching_tables":  tbl_rows,
         }, default=str)
     except Exception as exc:
         return json.dumps({"error": str(exc)})
@@ -209,16 +201,15 @@ def explain_table_lineage(table: str) -> str:
     Retrieve Delta table history (last 20 operations) to understand how the
     table is populated: who writes to it, how often, what operations.
     """
-    spark = _spark()
+    db = get_db()
     safe = table.strip()
     if not re.fullmatch(r"[\w.]+", safe):
         return json.dumps({"error": f"Invalid table name: {safe}"})
 
     try:
-        rows = spark.sql(f"DESCRIBE HISTORY {safe} LIMIT 20").collect()
+        rows = db.execute(f"DESCRIBE HISTORY {safe} LIMIT 20")
         history = []
-        for r in rows:
-            d = r.asDict()
+        for d in rows:
             history.append({
                 "version": d.get("version"),
                 "timestamp": str(d.get("timestamp")),

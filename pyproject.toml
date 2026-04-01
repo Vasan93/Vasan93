@@ -16,6 +16,7 @@ dependencies = [
     "azure-identity>=1.19.0",
     "azure-mgmt-datafactory>=9.0.0",
     "databricks-sdk>=0.38.0",
+    "databricks-sql-connector>=3.6.0",
 ]
 
 [project.optional-dependencies]

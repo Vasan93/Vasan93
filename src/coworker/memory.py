@@ -20,20 +20,13 @@ import json
 from datetime import datetime, timezone
 
 from .config import cfg
+from .db_client import get_db
 
 _MEM_TABLE = f"{cfg.AGENT_CATALOG}.{cfg.AGENT_SCHEMA}.conversations"
 
 
-def _spark():
-    from pyspark.sql import SparkSession
-    s = SparkSession.getActiveSession()
-    if s is None:
-        raise RuntimeError("No active SparkSession.")
-    return s
-
-
 def ensure_table() -> None:
-    _spark().sql(f"""
+    get_db().execute(f"""
         CREATE TABLE IF NOT EXISTS {_MEM_TABLE} (
             conversation_id STRING,
             turn_index      INT,
@@ -57,18 +50,15 @@ def save_turn(
 ) -> None:
     """Append a single turn to the conversation history."""
     ensure_table()
-    spark = _spark()
-    from pyspark.sql import Row
-
-    row = Row(
-        conversation_id=conversation_id,
-        turn_index=turn_index,
-        role=role,
-        content=content,
-        tool_call_id=tool_call_id,
-        created_at=datetime.now(timezone.utc),
-    )
-    spark.createDataFrame([row]).write.format("delta").mode("append").saveAsTable(_MEM_TABLE)
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    escaped_content = content.replace("'", "''")
+    tcid = f"'{tool_call_id}'" if tool_call_id else "NULL"
+    get_db().execute(f"""
+        INSERT INTO {_MEM_TABLE}
+        (conversation_id, turn_index, role, content, tool_call_id, created_at)
+        VALUES ('{conversation_id}', {turn_index}, '{role}',
+                '{escaped_content}', {tcid}, TIMESTAMP '{ts}')
+    """)
 
 
 def load_history(conversation_id: str, max_turns: int = 50) -> list[dict]:
@@ -76,18 +66,17 @@ def load_history(conversation_id: str, max_turns: int = 50) -> list[dict]:
     Load the most recent turns for a conversation, formatted as OpenAI messages.
     """
     ensure_table()
-    rows = _spark().sql(f"""
+    rows = get_db().execute(f"""
         SELECT role, content, tool_call_id
         FROM {_MEM_TABLE}
         WHERE conversation_id = '{conversation_id}'
         ORDER BY turn_index DESC
         LIMIT {max_turns}
-    """).collect()
+    """)
 
     # Reverse to chronological order
     messages = []
-    for row in reversed(rows):
-        d = row.asDict()
+    for d in reversed(rows):
         msg = {"role": d["role"], "content": d["content"]}
         if d.get("tool_call_id"):
             msg["tool_call_id"] = d["tool_call_id"]
@@ -99,12 +88,12 @@ def purge_old_conversations(hours: int | None = None) -> int:
     """Delete conversations older than the TTL.  Returns rows deleted."""
     ttl = hours or cfg.CONVERSATION_TTL_HOURS
     ensure_table()
-    spark = _spark()
+    db = get_db()
 
-    count_before = spark.sql(f"SELECT COUNT(*) AS cnt FROM {_MEM_TABLE}").collect()[0]["cnt"]
-    spark.sql(f"""
+    count_before = db.execute(f"SELECT COUNT(*) AS cnt FROM {_MEM_TABLE}")[0]["cnt"]
+    db.execute(f"""
         DELETE FROM {_MEM_TABLE}
         WHERE created_at < TIMESTAMPADD(HOUR, -{ttl}, CURRENT_TIMESTAMP())
     """)
-    count_after = spark.sql(f"SELECT COUNT(*) AS cnt FROM {_MEM_TABLE}").collect()[0]["cnt"]
+    count_after = db.execute(f"SELECT COUNT(*) AS cnt FROM {_MEM_TABLE}")[0]["cnt"]
     return count_before - count_after

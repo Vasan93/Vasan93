@@ -23,16 +23,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ..config import cfg
+from ..db_client import get_db
 
 log = logging.getLogger("coworker.pipeline_monitor")
-
-
-def _spark():
-    from pyspark.sql import SparkSession
-    s = SparkSession.getActiveSession()
-    if s is None:
-        raise RuntimeError("No active SparkSession.")
-    return s
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -411,7 +404,7 @@ def validate_post_load(table: str, expected_min_rows: int = 1000) -> str:
       3. Today's partition exists and has data
       4. No duplicate primary keys (if applicable)
     """
-    spark = _spark()
+    db = get_db()
     safe = table.strip()
     if not re.fullmatch(r"[\w.]+", safe):
         return json.dumps({"error": f"Invalid table name: {safe}"})
@@ -419,7 +412,7 @@ def validate_post_load(table: str, expected_min_rows: int = 1000) -> str:
     checks = []
 
     # 1. Row count
-    total = spark.sql(f"SELECT COUNT(*) AS cnt FROM {safe}").collect()[0]["cnt"]
+    total = db.execute(f"SELECT COUNT(*) AS cnt FROM {safe}")[0]["cnt"]
     checks.append({
         "check": "row_count",
         "value": total,
@@ -429,13 +422,13 @@ def validate_post_load(table: str, expected_min_rows: int = 1000) -> str:
     })
 
     # 2. Today's data exists (auto-detect date column)
-    cols = [c.name.lower() for c in spark.table(safe).schema]
+    cols = [c["name"].lower() for c in db.get_columns(safe)]
     date_candidates = [c for c in cols if "date" in c and "key" not in c]
     if date_candidates:
         dc = date_candidates[0]
-        today_count = spark.sql(
+        today_count = db.execute(
             f"SELECT COUNT(*) AS cnt FROM {safe} WHERE CAST(`{dc}` AS DATE) = CURRENT_DATE()"
-        ).collect()[0]["cnt"]
+        )[0]["cnt"]
         checks.append({
             "check": "todays_data_exists",
             "date_column": dc,
@@ -451,7 +444,7 @@ def validate_post_load(table: str, expected_min_rows: int = 1000) -> str:
             f"ROUND(100.0 * SUM(CASE WHEN `{c}` IS NULL THEN 1 ELSE 0 END) / COUNT(*), 2) AS `{c}`"
             for c in key_cols
         ]
-        null_row = spark.sql(f"SELECT {', '.join(exprs)} FROM {safe}").collect()[0].asDict()
+        null_row = db.execute(f"SELECT {', '.join(exprs)} FROM {safe}")[0]
         null_issues = {col: pct for col, pct in null_row.items() if pct and float(pct) > 5}
         checks.append({
             "check": "key_column_nulls",
