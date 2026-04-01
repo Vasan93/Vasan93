@@ -1,2 +1,25 @@
-claude-agent-sdk
-anyio
+# Co-Worker Agent — Yas Entertainment / Miral Parks
+# Install on your Databricks cluster or via databricks.yml library config
+
+# ── LLM (Azure AI Foundry / GPT-5.1) ─────────────────────────────────────
+openai>=1.60.0
+
+# ── API layer (Databricks App) ────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pydantic>=2.10.0
+
+# ── Teams Bot Framework ──────────────────────────────────────────────────
+httpx>=0.28.0
+
+# ── Azure SDKs (ADF + Power BI monitoring) ────────────────────────────────
+azure-identity>=1.19.0
+azure-mgmt-datafactory>=9.0.0
+
+# ── Databricks SDK (workflow monitoring) ──────────────────────────────────
+databricks-sdk>=0.38.0
+
+# ── Already available on Databricks Runtime ───────────────────────────────
+# pyspark        (cluster runtime)
+# delta-spark    (cluster runtime)
+# requests       (cluster runtime)

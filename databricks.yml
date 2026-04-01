@@ -1,0 +1,100 @@
+# Databricks Asset Bundle — Co-Worker Agent
+# Deploy with: databricks bundle deploy -t dev
+# Run monitor: databricks bundle run proactive_monitor -t dev
+
+bundle:
+  name: coworker-agent
+
+variables:
+  adf_resource_group:
+    description: Azure resource group containing the ADF instance
+    default: ""
+  adf_factory_name:
+    description: Azure Data Factory name
+    default: ""
+  powerbi_workspace_id:
+    description: Power BI workspace (group) ID
+    default: ""
+  powerbi_dataset_id:
+    description: Power BI dataset ID
+    default: ""
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: ${DATABRICKS_HOST}
+
+  prod:
+    mode: production
+    workspace:
+      host: ${DATABRICKS_HOST}
+    run_as:
+      service_principal_name: coworker-agent-sp
+
+# ── Databricks App (FastAPI REST API) ─────────────────────────────────────
+resources:
+  apps:
+    coworker-agent-app:
+      name: coworker-agent
+      description: >
+        Co-Worker Agent REST API — serves chat, monitoring, knowledge base,
+        and onboarding endpoints.  Teams and Copilot Studio connect here.
+      source_code_path: ./app
+      config:
+        command:
+          - uvicorn
+          - app.main:app
+          - --host=0.0.0.0
+          - --port=8000
+      resources:
+        - name: coworker-cluster
+          description: Shared cluster for Spark access
+          cluster:
+            existing_cluster_id: ${COWORKER_CLUSTER_ID}
+
+  # ── Proactive Monitor Job ─────────────────────────────────────────────
+  jobs:
+    proactive_monitor:
+      name: "[CoWorker] Proactive Monitor"
+      description: >
+        Runs every 30 minutes to check ADF, Databricks workflows, and Power BI
+        for failures.  Diagnoses root causes, attempts auto-recovery, validates
+        post-load data quality, and alerts the team via Teams.
+      schedule:
+        quartz_cron_expression: "0 0/30 * * * ?"
+        timezone_id: Asia/Dubai
+      tasks:
+        - task_key: run_monitor
+          notebook_task:
+            notebook_path: ./databricks/jobs/proactive_monitor.py
+            source: WORKSPACE
+          existing_cluster_id: ${COWORKER_CLUSTER_ID}
+      parameters:
+        - name: ADF_RESOURCE_GROUP
+          default: ${var.adf_resource_group}
+        - name: ADF_FACTORY_NAME
+          default: ${var.adf_factory_name}
+        - name: POWERBI_WORKSPACE_ID
+          default: ${var.powerbi_workspace_id}
+        - name: POWERBI_DATASET_ID
+          default: ${var.powerbi_dataset_id}
+      email_notifications:
+        on_failure:
+          - data-ops@yasentertainment.com
+      max_retries: 1
+      timeout_seconds: 600
+
+    # ── Conversation cleanup job ──────────────────────────────────────────
+    conversation_cleanup:
+      name: "[CoWorker] Conversation Cleanup"
+      description: Purge conversation history older than 24 hours.
+      schedule:
+        quartz_cron_expression: "0 0 2 * * ?"
+        timezone_id: Asia/Dubai
+      tasks:
+        - task_key: cleanup
+          spark_python_task:
+            python_file: ./databricks/jobs/cleanup.py
+          existing_cluster_id: ${COWORKER_CLUSTER_ID}
