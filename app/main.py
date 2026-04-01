@@ -130,6 +130,25 @@ def list_kb(category: str | None = None, limit: int = 20):
     return json.loads(list_articles(category=category, limit=limit))
 
 
+@app.get("/skills")
+def list_skills():
+    """List all available agent skills with descriptions and triggers."""
+    from src.coworker.skills import get_registry
+    reg = get_registry()
+    return {
+        "skills": [
+            {
+                "name": s.name,
+                "description": s.description,
+                "trigger_phrases": s.trigger_phrases,
+                "tool_count": len(s.tool_names),
+                "max_rounds": s.max_rounds,
+            }
+            for s in reg.all_skills()
+        ]
+    }
+
+
 @app.get("/glossary")
 def glossary(term: str | None = None):
     from src.coworker.tools.onboarding import get_glossary
