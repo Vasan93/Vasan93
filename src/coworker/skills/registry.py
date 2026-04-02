@@ -62,6 +62,51 @@ class SkillRegistry:
             )
         return "\n".join(lines)
 
+    def register_custom_skill(
+        self,
+        name: str,
+        description: str,
+        trigger_phrases: list[str],
+        system_prompt: str,
+        tool_names: list[str],
+        max_rounds: int = 8,
+    ) -> Skill:
+        """
+        Register a custom skill at runtime and resolve its tools immediately.
+
+        Example (notebook usage)::
+
+            from src.coworker.skills import get_registry
+            from src.coworker.tools import ALL_TOOLS
+
+            reg = get_registry()
+            reg.register_custom_skill(
+                name="finance_analyst",
+                description="Answers revenue and budget questions from the daily revenue view",
+                trigger_phrases=["revenue", "budget", "forecast", "RPV", "yield"],
+                system_prompt="You are a finance analyst. Focus on TBVW__DAILY_REVENUE_DATA_SS.",
+                tool_names=["run_dq_query", "describe_table", "search_articles"],
+                max_rounds=6,
+            )
+        """
+        from ..tools import ALL_TOOLS
+
+        skill = Skill(
+            name=name,
+            description=description,
+            trigger_phrases=trigger_phrases,
+            system_prompt=system_prompt,
+            tool_names=tool_names,
+            max_rounds=max_rounds,
+        )
+        self.register(skill)
+
+        # Resolve tools for just this new skill
+        tool_index = {t["function"]["name"]: t for t in ALL_TOOLS}
+        skill.tools = [tool_index[n] for n in tool_names if n in tool_index]
+
+        return skill
+
 
 # ── Singleton ─────────────────────────────────────────────────────────────
 

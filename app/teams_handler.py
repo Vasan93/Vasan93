@@ -91,18 +91,22 @@ class TeamsBotHandler:
 
         try:
             reply_text = agent.handle_message(text)
+            active_skill = agent.active_skill
         except Exception as exc:
             log.exception("Agent error for Teams message")
             reply_text = f"Sorry, I hit an error: {exc}"
+            active_skill = None
 
         # Send the reply back to Teams
-        await self._send_reply(body, reply_text)
+        await self._send_reply(body, reply_text, active_skill=active_skill)
 
         return Response(status_code=200)
 
     # ── Send reply to Teams ──────────────────────────────────────────────
 
-    async def _send_reply(self, activity: dict, text: str) -> None:
+    async def _send_reply(
+        self, activity: dict, text: str, active_skill: str | None = None
+    ) -> None:
         token = self._token or await self._get_token()
         service_url = activity.get("serviceUrl", _BOT_API).rstrip("/")
 
@@ -112,14 +116,10 @@ class TeamsBotHandler:
             f"{activity['id']}"
         )
 
-        reply_activity = {
-            "type": "message",
-            "from": activity.get("recipient"),
-            "recipient": activity.get("from"),
-            "conversation": activity.get("conversation"),
-            "text": text,
-            "textFormat": "markdown",
-        }
+        # Build an Adaptive Card so the skill badge and content render nicely
+        reply_activity = self._build_adaptive_card_activity(
+            activity, text, active_skill
+        )
 
         async with httpx.AsyncClient() as client:
             resp = await client.post(
@@ -129,6 +129,65 @@ class TeamsBotHandler:
             )
             if resp.status_code >= 400:
                 log.error("Failed to reply to Teams: %s %s", resp.status_code, resp.text)
+
+    # ── Build Adaptive Card reply ─────────────────────────────────────────
+
+    # Human-readable labels + colour accents for each skill
+    _SKILL_META: dict[str, dict] = {
+        "pipeline_guardian":   {"label": "Pipeline Guardian",  "color": "attention"},
+        "data_detective":      {"label": "Data Detective",     "color": "warning"},
+        "post_load_validator": {"label": "Post-Load Validator","color": "good"},
+        "code_explainer":      {"label": "Code Explainer",     "color": "accent"},
+        "knowledge_manager":   {"label": "Knowledge Manager",  "color": "accent"},
+        "onboarding_coach":    {"label": "Onboarding Coach",   "color": "good"},
+        "schema_explorer":     {"label": "Schema Explorer",    "color": "accent"},
+        "incident_responder":  {"label": "Incident Responder", "color": "attention"},
+    }
+
+    def _build_adaptive_card_activity(
+        self, activity: dict, text: str, active_skill: str | None
+    ) -> dict:
+        """
+        Wrap the reply in an Adaptive Card.
+        If a skill was activated, display a coloured badge at the top.
+        """
+        card_body: list[dict] = []
+
+        if active_skill:
+            meta = self._SKILL_META.get(
+                active_skill, {"label": active_skill.replace("_", " ").title(), "color": "default"}
+            )
+            card_body.append({
+                "type": "TextBlock",
+                "text": f"**{meta['label']}** skill activated",
+                "color": meta["color"],
+                "size": "small",
+                "spacing": "none",
+            })
+
+        card_body.append({
+            "type": "TextBlock",
+            "text": text,
+            "wrap": True,
+        })
+
+        return {
+            "type": "message",
+            "from": activity.get("recipient"),
+            "recipient": activity.get("from"),
+            "conversation": activity.get("conversation"),
+            "attachments": [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": {
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "type": "AdaptiveCard",
+                        "version": "1.4",
+                        "body": card_body,
+                    },
+                }
+            ],
+        }
 
     # ── Send proactive alert to a Teams channel ──────────────────────────
 

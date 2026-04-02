@@ -56,6 +56,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     conversation_id: str
     reply: str
+    active_skill: str | None = None
     tools_used: list[str] = []
 
 
@@ -85,6 +86,7 @@ def chat(req: ChatRequest):
     return ChatResponse(
         conversation_id=conv_id,
         reply=reply,
+        active_skill=agent.active_skill,
     )
 
 
