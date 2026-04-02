@@ -194,6 +194,22 @@ components:
         reply:
           type: string
           description: The agent's response (Markdown formatted)
+        active_skill:
+          type: string
+          nullable: true
+          description: >
+            Name of the skill that handled this request
+            (e.g. pipeline_guardian, data_detective, onboarding_coach).
+            Null if the agent ran in general mode.
+          enum:
+            - pipeline_guardian
+            - data_detective
+            - post_load_validator
+            - code_explainer
+            - knowledge_manager
+            - onboarding_coach
+            - schema_explorer
+            - incident_responder
         tools_used:
           type: array
           items:
