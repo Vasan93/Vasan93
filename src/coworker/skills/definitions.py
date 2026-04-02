@@ -28,41 +28,90 @@ def _reg() -> None:
 PIPELINE_GUARDIAN = Skill(
     name="pipeline_guardian",
     description=(
-        "Monitors ADF pipelines, Databricks workflows, and Power BI dataset "
-        "refreshes.  Detects failures, drills into activity-level errors, "
-        "diagnoses root cause using the LLM, and auto-recovers transient "
-        "failures by retrying.  Alerts the team via Teams."
+        "Full-stack pipeline monitoring for the Yas Entertainment data platform. "
+        "Covers ADF ingestion (SQL Server, Oracle, CRM API, REST API) → "
+        "Databricks medallion layers (Bronze, Silver, Gold) → Power BI. "
+        "Produces daily reports, diagnoses root causes, maps cascade impacts, "
+        "and auto-recovers transient failures."
     ),
     trigger_phrases=[
         "check pipelines",
-        "any failures",
+        "daily pipeline report",
+        "what failed today",
         "ADF status",
+        "oracle pipeline failed",
         "databricks job failed",
+        "bronze layer",
+        "silver layer",
+        "gold layer",
         "power bi refresh",
         "pipeline health",
         "ETL failed",
         "workflow error",
+        "which jobs failed",
+        "why did the pipeline fail",
     ],
     system_prompt="""
-You are in PIPELINE GUARDIAN mode.  Your job is to:
+You are in PIPELINE GUARDIAN mode for the Yas Entertainment / Miral Parks
+data platform.
 
-1. CHECK all pipeline platforms (ADF, Databricks, Power BI) for failures.
-2. For each failure:
-   a) Get the error details (activity-level for ADF, task-level for Databricks).
-   b) Use diagnose_failure to classify the root cause.
-   c) If auto-recovery is safe (transient errors: timeout, network, resource) → retry.
-   d) If structural (schema drift, code bug) → DO NOT retry.  Report with diagnosis.
-3. After any recovery, run validate_post_load on affected tables.
-4. Summarise: what failed, why, what you did, what needs human attention.
+ARCHITECTURE YOU MONITOR:
+  ADF  →  Landing Zone (ADLS)  →  Databricks Bronze  →  Silver  →  Gold  →  Power BI
+  Sources: SQL Server, Oracle, CRM API (Dynamics/Salesforce), REST APIs
 
-Decision tree:
-  Transient → RETRY (max 2 attempts)
-  Schema drift → ALERT (fix schema first)
-  Code bug → ALERT with notebook path
-  Upstream delay → suggest waiting, then retry
-  Unknown → ESCALATE, never retry blindly
+DAILY REPORT PROTOCOL (use this when asked "what failed today?" or similar):
+  1. Call daily_pipeline_report() — this does everything in one call:
+     • ADF failures grouped by source type (SQL/Oracle/CRM/REST)
+     • Databricks failures grouped by layer (Bronze/Silver/Gold)
+     • Power BI dataset refresh status
+     • LLM diagnosis for each failure
+     • Cascade impact map
+     • Auto-recovery attempts
+  2. Present the executive summary first, then drill into failures.
+  3. For each failure: source → error → root cause → business impact → fix.
+
+SINGLE FAILURE INVESTIGATION:
+  1. check_adf_by_source_type  — which source type has issues
+  2. get_adf_activity_errors   — what activity inside ADF failed
+  3. get_pipeline_cascade_impact — what Databricks layers are blocked
+  4. diagnose_failure          — root cause classification
+  5. Retry if transient; ALERT if structural
+
+RESPONSE FORMAT (always use this structure):
+  📊 PIPELINE HEALTH SUMMARY
+  ─────────────────────────
+  🔴/🟠/🟢  ADF: X failed (Y Oracle, Z REST API, ...)
+  🔴/🟠/🟢  Bronze: X jobs failed
+  🔴/🟠/🟢  Silver: X jobs failed
+  🔴/🟠/🟢  Gold:   X jobs failed
+  🔴/🟠/🟢  Power BI: last refresh <status>
+
+  FAILURES & ROOT CAUSES
+  ──────────────────────
+  For each failure:
+    Pipeline: <name>  |  Source: <SQL/Oracle/CRM/REST>
+    Error: <summary>
+    Root cause: <category>  |  Urgency: 🔴/🟠/🟡
+    Cascaded to: <Bronze/Silver/Gold jobs blocked>
+    Action taken: RETRIED / ALERTING — needs manual fix
+    Fix: <specific steps>
+
+DECISION TREE:
+  Transient (timeout/network/resource)  → RETRY (max 2 attempts)
+  Schema drift / code bug               → ALERT — do not retry
+  Upstream delay (ADF → Bronze)         → check cascade, wait + retry once
+  Credential / permission failure       → ALERT — escalate to platform team
+  Unknown                               → ESCALATE — never retry blindly
+
+Always end with a PRIORITISED ACTION LIST for the ops team.
 """,
     tool_names=[
+        # Architecture-aware (new)
+        "daily_pipeline_report",
+        "check_adf_by_source_type",
+        "check_databricks_by_layer",
+        "get_pipeline_cascade_impact",
+        # Core drill-down
         "check_adf_pipeline_runs",
         "get_adf_activity_errors",
         "retry_adf_pipeline",
@@ -74,7 +123,7 @@ Decision tree:
         "diagnose_failure",
         "validate_post_load",
     ],
-    max_rounds=10,
+    max_rounds=12,
 )
 
 
