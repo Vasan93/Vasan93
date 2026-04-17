@@ -18,6 +18,7 @@ This handler plugs into the FastAPI app (main.py).
 from __future__ import annotations
 import json
 import logging
+import re
 import uuid
 from typing import Any
 
@@ -130,6 +131,30 @@ class TeamsBotHandler:
             if resp.status_code >= 400:
                 log.error("Failed to reply to Teams: %s %s", resp.status_code, resp.text)
 
+    # ── HTML sanitisation ─────────────────────────────────────────────────
+
+    @staticmethod
+    def _strip_html(text: str) -> str:
+        """
+        Convert HTML to plain markdown-friendly text.
+        Adaptive Card TextBlock renders markdown only — not HTML — so any
+        HTML tags returned by the LLM must be removed before display.
+        """
+        # Line breaks
+        text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+        # Block-level closing tags → newline
+        text = re.sub(r'</(div|p|li|h[1-6]|tr|td|th)>', '\n', text, flags=re.IGNORECASE)
+        # List items → bullet
+        text = re.sub(r'<li[^>]*>', '\u2022 ', text, flags=re.IGNORECASE)
+        # Bold / strong → markdown bold
+        text = re.sub(r'<(b|strong)[^>]*>(.*?)</(b|strong)>', r'**\2**', text,
+                      flags=re.IGNORECASE | re.DOTALL)
+        # Strip all remaining tags
+        text = re.sub(r'<[^>]+>', '', text)
+        # Collapse excess blank lines
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        return text.strip()
+
     # ── Build Adaptive Card reply ─────────────────────────────────────────
 
     # Human-readable labels + colour accents for each skill
@@ -151,6 +176,9 @@ class TeamsBotHandler:
         Wrap the reply in an Adaptive Card.
         If a skill was activated, display a coloured badge at the top.
         """
+        # Sanitise HTML before inserting into TextBlock (TextBlock is markdown-only)
+        clean_text = self._strip_html(text)
+
         card_body: list[dict] = []
 
         if active_skill:
@@ -167,7 +195,7 @@ class TeamsBotHandler:
 
         card_body.append({
             "type": "TextBlock",
-            "text": text,
+            "text": clean_text,
             "wrap": True,
         })
 
@@ -197,6 +225,8 @@ class TeamsBotHandler:
         Send an Adaptive Card to a Teams channel via Incoming Webhook.
         Used by the proactive monitor to push alerts.
         """
+        clean_body = TeamsBotHandler._strip_html(body)
+
         card = {
             "type": "message",
             "attachments": [
@@ -216,7 +246,7 @@ class TeamsBotHandler:
                             },
                             {
                                 "type": "TextBlock",
-                                "text": body,
+                                "text": clean_body,
                                 "wrap": True,
                             },
                         ],
