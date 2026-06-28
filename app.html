@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Proposal - QuickProposal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/app.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="app-body">
+    <nav class="navbar app-navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">&#9889;</span> QuickProposal
+            </a>
+            <div class="nav-links">
+                <span class="proposals-count">Free: <strong id="remaining-count">3</strong> proposals left</span>
+                <a href="index.html" class="btn btn-outline btn-sm">Back to Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="app-main">
+        <div class="container">
+            <div class="app-layout">
+                <div class="form-panel" id="form-panel">
+                    <div class="panel-header">
+                        <h2>Create New Proposal</h2>
+                        <p>Fill in the details and we'll generate a professional proposal for you.</p>
+                    </div>
+
+                    <form id="proposal-form">
+                        <div class="form-section">
+                            <h3>About You</h3>
+                            <div class="form-group">
+                                <label for="your-name">Your Name / Business Name</label>
+                                <input type="text" id="your-name" placeholder="e.g., Jane Smith Design Studio" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="your-role">Your Role / Expertise</label>
+                                <input type="text" id="your-role" placeholder="e.g., Senior UX Designer">
+                            </div>
+                            <div class="form-group">
+                                <label for="your-email">Your Email</label>
+                                <input type="email" id="your-email" placeholder="e.g., jane@example.com">
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>Client Details</h3>
+                            <div class="form-group">
+                                <label for="client-name">Client Name / Company</label>
+                                <input type="text" id="client-name" placeholder="e.g., Acme Corp" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="client-industry">Client Industry</label>
+                                <select id="client-industry">
+                                    <option value="">Select industry...</option>
+                                    <option value="technology">Technology / SaaS</option>
+                                    <option value="ecommerce">E-Commerce / Retail</option>
+                                    <option value="healthcare">Healthcare</option>
+                                    <option value="finance">Finance / Fintech</option>
+                                    <option value="education">Education</option>
+                                    <option value="realestate">Real Estate</option>
+                                    <option value="food">Food & Beverage</option>
+                                    <option value="media">Media & Entertainment</option>
+                                    <option value="nonprofit">Non-Profit</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>Project Details</h3>
+                            <div class="form-group">
+                                <label for="project-type">Project Type</label>
+                                <select id="project-type" required>
+                                    <option value="">Select project type...</option>
+                                    <option value="website">Website Design & Development</option>
+                                    <option value="mobile-app">Mobile App Development</option>
+                                    <option value="branding">Branding & Logo Design</option>
+                                    <option value="marketing">Digital Marketing Campaign</option>
+                                    <option value="seo">SEO & Content Strategy</option>
+                                    <option value="consulting">Consulting & Strategy</option>
+                                    <option value="video">Video Production</option>
+                                    <option value="copywriting">Copywriting & Content</option>
+                                    <option value="social-media">Social Media Management</option>
+                                    <option value="custom">Custom / Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="project-description">Project Description</label>
+                                <textarea id="project-description" rows="4" placeholder="Describe what the client needs. The more detail, the better the proposal." required></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="timeline">Timeline</label>
+                                    <select id="timeline">
+                                        <option value="1-2 weeks">1-2 Weeks</option>
+                                        <option value="2-4 weeks" selected>2-4 Weeks</option>
+                                        <option value="1-2 months">1-2 Months</option>
+                                        <option value="2-3 months">2-3 Months</option>
+                                        <option value="3-6 months">3-6 Months</option>
+                                        <option value="6+ months">6+ Months</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="budget">Proposed Budget ($)</label>
+                                    <input type="number" id="budget" placeholder="e.g., 5000" min="0" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="tone">Proposal Tone</label>
+                                <select id="tone">
+                                    <option value="professional">Professional & Formal</option>
+                                    <option value="friendly" selected>Friendly & Approachable</option>
+                                    <option value="bold">Bold & Confident</option>
+                                    <option value="minimal">Minimal & Direct</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg btn-block" id="generate-btn">
+                            <span class="btn-text">Generate Proposal</span>
+                            <span class="btn-loading" style="display:none;">
+                                <span class="spinner"></span> Generating...
+                            </span>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="preview-panel" id="preview-panel">
+                    <div class="panel-header">
+                        <h2>Proposal Preview</h2>
+                        <div class="preview-actions" id="preview-actions" style="display:none;">
+                            <button class="btn btn-sm btn-outline" id="copy-btn">Copy Text</button>
+                            <button class="btn btn-sm btn-primary" id="download-btn">Download PDF</button>
+                        </div>
+                    </div>
+                    <div class="preview-content" id="preview-content">
+                        <div class="preview-empty">
+                            <div class="preview-empty-icon">&#128221;</div>
+                            <h3>Your proposal will appear here</h3>
+                            <p>Fill in the form and click "Generate Proposal" to create a professional proposal in seconds.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast" style="display:none;">
+        <span id="toast-message"></span>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
