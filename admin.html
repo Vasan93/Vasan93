@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - DineFlow</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <span class="logo"><span class="logo-icon">&#127858;</span> DineFlow</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard', this)">
+                <span>&#128202;</span> Dashboard
+            </a>
+            <a href="#" class="nav-item" data-tab="orders" onclick="switchTab('orders', this)">
+                <span>&#128203;</span> Live Orders
+            </a>
+            <a href="#" class="nav-item" data-tab="menu" onclick="switchTab('menu', this)">
+                <span>&#127860;</span> Menu Manager
+            </a>
+            <a href="#" class="nav-item" data-tab="tables" onclick="switchTab('tables', this)">
+                <span>&#128205;</span> Tables & QR
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="kitchen.html" class="nav-item">
+                <span>&#128268;</span> Kitchen Display
+            </a>
+            <a href="index.html" class="nav-item">
+                <span>&#127968;</span> Back to Site
+            </a>
+        </div>
+    </aside>
+
+    <main class="admin-main">
+        <!-- Dashboard Tab -->
+        <div class="tab-content active" id="tab-dashboard">
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <p>Welcome back! Here's what's happening today.</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-icon green">&#128176;</div>
+                    <div>
+                        <p class="stat-card-label">Today's Revenue</p>
+                        <p class="stat-card-value" id="stat-revenue">$0.00</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon blue">&#128203;</div>
+                    <div>
+                        <p class="stat-card-label">Total Orders</p>
+                        <p class="stat-card-value" id="stat-orders">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon orange">&#9203;</div>
+                    <div>
+                        <p class="stat-card-label">Pending Orders</p>
+                        <p class="stat-card-value" id="stat-pending">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon purple">&#127860;</div>
+                    <div>
+                        <p class="stat-card-label">Menu Items</p>
+                        <p class="stat-card-value" id="stat-items">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>Recent Orders</h3>
+                    <div id="recent-orders" class="recent-orders-list"></div>
+                </div>
+                <div class="card">
+                    <h3>Popular Items</h3>
+                    <div id="popular-items" class="popular-items-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Orders Tab -->
+        <div class="tab-content" id="tab-orders">
+            <div class="page-header">
+                <h1>Live Orders</h1>
+                <p>Manage incoming orders in real-time.</p>
+            </div>
+            <div class="orders-board" id="orders-board">
+                <div class="order-column">
+                    <h3 class="column-header pending-header">&#128308; New <span id="new-count" class="column-count">0</span></h3>
+                    <div class="order-list" id="orders-new"></div>
+                </div>
+                <div class="order-column">
+                    <h3 class="column-header preparing-header">&#128992; Preparing <span id="preparing-count" class="column-count">0</span></h3>
+                    <div class="order-list" id="orders-preparing"></div>
+                </div>
+                <div class="order-column">
+                    <h3 class="column-header ready-header">&#128994; Ready <span id="ready-count" class="column-count">0</span></h3>
+                    <div class="order-list" id="orders-ready"></div>
+                </div>
+                <div class="order-column">
+                    <h3 class="column-header served-header">&#9989; Served <span id="served-count" class="column-count">0</span></h3>
+                    <div class="order-list" id="orders-served"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Manager Tab -->
+        <div class="tab-content" id="tab-menu">
+            <div class="page-header">
+                <h1>Menu Manager</h1>
+                <div class="page-actions">
+                    <button class="btn btn-primary btn-sm" onclick="openMenuModal()">+ Add Item</button>
+                </div>
+            </div>
+            <div class="menu-categories" id="admin-menu-list"></div>
+        </div>
+
+        <!-- Tables & QR Tab -->
+        <div class="tab-content" id="tab-tables">
+            <div class="page-header">
+                <h1>Tables & QR Codes</h1>
+                <div class="page-actions">
+                    <button class="btn btn-primary btn-sm" onclick="addTable()">+ Add Table</button>
+                </div>
+            </div>
+            <p class="tables-info">Click on a QR code to view the ordering page for that table. Print and place on your tables.</p>
+            <div class="tables-grid" id="tables-grid"></div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Menu Item Modal -->
+    <div class="admin-modal-overlay" id="menu-modal" style="display:none">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h2 id="menu-modal-title">Add Menu Item</h2>
+                <button class="modal-close" onclick="closeMenuModal()">&times;</button>
+            </div>
+            <form id="menu-item-form" onsubmit="saveMenuItem(event)">
+                <div class="form-group">
+                    <label>Item Name</label>
+                    <input type="text" id="item-name" required placeholder="e.g., Margherita Pizza">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="item-category" required>
+                        <option value="">Select category...</option>
+                        <option value="starters">Starters</option>
+                        <option value="mains">Main Course</option>
+                        <option value="pizza">Pizza</option>
+                        <option value="burgers">Burgers</option>
+                        <option value="pasta">Pasta</option>
+                        <option value="salads">Salads</option>
+                        <option value="sides">Sides</option>
+                        <option value="desserts">Desserts</option>
+                        <option value="drinks">Drinks</option>
+                        <option value="specials">Chef's Specials</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="item-description" rows="2" placeholder="Short description..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Price ($)</label>
+                        <input type="number" id="item-price" step="0.01" min="0" required placeholder="12.99">
+                    </div>
+                    <div class="form-group">
+                        <label>Emoji Icon</label>
+                        <input type="text" id="item-emoji" placeholder="&#127829;" maxlength="4">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="item-available" checked>
+                        Available
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="item-popular">
+                        Mark as Popular
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="item-veg">
+                        Vegetarian
+                    </label>
+                </div>
+                <input type="hidden" id="item-edit-id">
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeMenuModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" style="display:none">
+        <span id="toast-message"></span>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

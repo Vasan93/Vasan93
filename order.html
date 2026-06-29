@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Order - DineFlow</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/order.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="order-body">
+    <header class="order-header">
+        <div class="order-header-top">
+            <div class="restaurant-info">
+                <span class="restaurant-logo">&#127858;</span>
+                <div>
+                    <h1 class="restaurant-name">The Grand Kitchen</h1>
+                    <p class="table-badge">Table <span id="table-number">1</span></p>
+                </div>
+            </div>
+            <button class="cart-btn" id="cart-btn" onclick="toggleCart()">
+                <span>&#128722;</span>
+                <span class="cart-count" id="cart-count">0</span>
+            </button>
+        </div>
+        <nav class="category-nav" id="category-nav"></nav>
+    </header>
+
+    <main class="order-main" id="menu-container">
+        <div class="menu-loading" id="menu-loading">
+            <div class="spinner-lg"></div>
+            <p>Loading menu...</p>
+        </div>
+    </main>
+
+    <div class="cart-overlay" id="cart-overlay" onclick="toggleCart()"></div>
+    <div class="cart-drawer" id="cart-drawer">
+        <div class="cart-header">
+            <h2>Your Order</h2>
+            <button class="cart-close" onclick="toggleCart()">&times;</button>
+        </div>
+        <div class="cart-items" id="cart-items">
+            <div class="cart-empty" id="cart-empty">
+                <span>&#127869;</span>
+                <p>Your cart is empty</p>
+                <p class="cart-empty-sub">Add items from the menu to get started</p>
+            </div>
+        </div>
+        <div class="cart-footer" id="cart-footer" style="display:none">
+            <div class="cart-subtotal">
+                <span>Subtotal</span>
+                <span id="cart-subtotal">$0.00</span>
+            </div>
+            <div class="cart-tax">
+                <span>Tax (8%)</span>
+                <span id="cart-tax">$0.00</span>
+            </div>
+            <div class="cart-total">
+                <span>Total</span>
+                <span id="cart-total">$0.00</span>
+            </div>
+            <div class="cart-notes">
+                <textarea id="order-notes" placeholder="Special instructions (allergies, preferences...)"></textarea>
+            </div>
+            <button class="btn btn-primary btn-lg btn-block" id="place-order-btn" onclick="placeOrder()">
+                Place Order
+            </button>
+        </div>
+    </div>
+
+    <div class="order-success-overlay" id="order-success" style="display:none">
+        <div class="order-success-card">
+            <div class="success-icon">&#9989;</div>
+            <h2>Order Placed!</h2>
+            <p>Your order has been sent to the kitchen.</p>
+            <p class="order-number">Order #<span id="order-id"></span></p>
+            <p class="order-eta">Estimated time: <strong>15-20 min</strong></p>
+            <button class="btn btn-primary btn-lg" onclick="closeSuccess()">Order More</button>
+        </div>
+    </div>
+
+    <div class="item-modal-overlay" id="item-modal" style="display:none" onclick="closeItemModal(event)">
+        <div class="item-modal">
+            <button class="modal-close" onclick="closeItemModal()">&times;</button>
+            <div class="item-modal-img" id="modal-img"></div>
+            <div class="item-modal-body">
+                <h2 id="modal-name"></h2>
+                <p class="modal-desc" id="modal-desc"></p>
+                <p class="modal-price" id="modal-price"></p>
+                <div class="modal-quantity">
+                    <button class="qty-btn" onclick="changeModalQty(-1)">-</button>
+                    <span id="modal-qty">1</span>
+                    <button class="qty-btn" onclick="changeModalQty(1)">+</button>
+                </div>
+                <button class="btn btn-primary btn-lg btn-block" id="modal-add-btn" onclick="addFromModal()">
+                    Add to Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/order.js"></script>
+</body>
+</html>

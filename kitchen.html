@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Display - DineFlow</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/kitchen.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="kitchen-body">
+    <header class="kitchen-header">
+        <div class="kitchen-header-left">
+            <span class="logo"><span class="logo-icon">&#127858;</span> DineFlow</span>
+            <span class="kitchen-badge">KITCHEN DISPLAY</span>
+        </div>
+        <div class="kitchen-header-right">
+            <span class="kitchen-time" id="kitchen-time"></span>
+            <a href="admin.html" class="btn btn-outline btn-sm">Admin Panel</a>
+        </div>
+    </header>
+
+    <main class="kitchen-main">
+        <div class="kitchen-columns">
+            <div class="kitchen-column">
+                <h2 class="kitchen-column-title new-title">
+                    &#128308; NEW ORDERS <span class="badge" id="k-new-count">0</span>
+                </h2>
+                <div class="kitchen-orders" id="k-orders-new"></div>
+            </div>
+            <div class="kitchen-column">
+                <h2 class="kitchen-column-title prep-title">
+                    &#128992; PREPARING <span class="badge" id="k-prep-count">0</span>
+                </h2>
+                <div class="kitchen-orders" id="k-orders-prep"></div>
+            </div>
+            <div class="kitchen-column">
+                <h2 class="kitchen-column-title ready-title">
+                    &#128994; READY TO SERVE <span class="badge" id="k-ready-count">0</span>
+                </h2>
+                <div class="kitchen-orders" id="k-orders-ready"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/data.js"></script>
+    <script src="js/kitchen.js"></script>
+</body>
+</html>
