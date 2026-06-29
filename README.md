@@ -1,54 +1,61 @@
-# QuickProposal
+# DineFlow
 
-**AI-powered proposal generator for freelancers and agencies.**
+**QR Code Table Ordering System for Restaurants**
 
-Stop spending hours writing client proposals from scratch. QuickProposal generates polished, professional proposals in under 60 seconds — personalized for every client.
+Let your guests order from their phone. DineFlow turns every table into a self-service ordering station with a simple QR code. No app downloads required.
+
+## How It Works
+
+1. Restaurant owner adds their menu in the admin dashboard
+2. Print QR codes for each table
+3. Guests scan, browse the menu, and place orders from their phone
+4. Orders appear instantly on the kitchen display and admin panel
+
+## Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Landing | `index.html` | Marketing page to sell to restaurants |
+| Customer Order | `order.html?table=5` | Mobile ordering (accessed via QR code) |
+| Admin Dashboard | `admin.html` | Menu manager, live orders, tables & QR |
+| Kitchen Display | `kitchen.html` | Real-time order queue for kitchen staff |
 
 ## Features
 
-- **60-Second Proposals** — Fill in project details, get a complete proposal instantly
-- **Smart Personalization** — Adapts tone, scope, and pricing to your project type and client industry
-- **Built-in Pricing Calculator** — Auto-generates itemized breakdowns based on project type
-- **Multiple Export Formats** — Copy as text or download as HTML
-- **Freemium Model** — 3 free proposals/month, $12/month for Pro, $39/month for Agency
+- **QR Code Ordering** - Unique QR per table, no app download needed
+- **30-Item Demo Menu** - 9 categories with emoji icons, VEG/Popular tags
+- **Cart & Checkout** - Quantity controls, tax calculation, special instructions
+- **Live Orders Board** - Kanban: New > Preparing > Ready > Served
+- **Menu Manager** - Add/edit/delete items, toggle availability in real-time
+- **Kitchen Display** - Dark-themed, elapsed time tracking, urgency alerts
+- **Dashboard Analytics** - Revenue, order count, popular items
+- **QR Code Generator** - Auto-generated printable QR codes per table
 
 ## Tech Stack
 
 - Pure HTML, CSS, JavaScript (zero dependencies)
-- No build step required
-- Deployable on GitHub Pages, Netlify, Vercel, or any static host
+- localStorage for MVP data persistence
+- No build step, deployable anywhere
 
-## Getting Started
+## Revenue Model
 
-1. Clone this repo
-2. Open `index.html` in your browser (or deploy to any static host)
-3. Navigate to the app via "Get Started Free"
-4. Fill in your project details and generate proposals
-
-## Monetization
-
-| Plan    | Price     | Proposals  |
-|---------|-----------|------------|
-| Starter | Free      | 3/month    |
-| Pro     | $12/month | Unlimited  |
-| Agency  | $39/month | Unlimited + Team |
+| Plan | Price | Features |
+|------|-------|----------|
+| Starter | $29/mo | 10 tables, 50 menu items |
+| Professional | $69/mo | Unlimited, online payments, analytics |
+| Enterprise | $149/mo | Multi-location, POS integration, API |
 
 ## Deploy
 
-Deploy instantly on GitHub Pages:
-
-```bash
-# Enable GitHub Pages in repo settings, pointing to the main branch
-```
-
-Or on Netlify/Vercel — just connect the repo, no config needed.
+Works on GitHub Pages, Netlify, Vercel, or any static host. Just point to the repo.
 
 ## Roadmap
 
+- [ ] Backend API (Node.js/Express or Supabase)
 - [ ] Stripe payment integration
-- [ ] User accounts and saved proposals
-- [ ] AI-powered proposal content via API
-- [ ] PDF export with professional formatting
-- [ ] Proposal analytics (open tracking)
-- [ ] E-signature integration
-- [ ] Custom branding for Agency plans
+- [ ] Real-time WebSocket order updates
+- [ ] Restaurant owner authentication
+- [ ] Multi-language menu support
+- [ ] Photo upload for menu items
+- [ ] Recurring order / favorites
+- [ ] POS system integration
