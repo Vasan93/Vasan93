@@ -12,8 +12,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | 3 | Board & game import | **done** |
 | 4 | Game review + weakness seeding | **done** |
 | 5 | Coaching brain | **done** |
-| 7 | Curriculum, puzzles & SRS | **done** |
-| 6 | Assessment flow | **done** |
+| 6 | Assessment flow | **done** (built after 7) |
+| 7 | Curriculum, puzzles & SRS | **done** (built before 6) |
 | 8 | Practice sparring | **done** |
 | 9 | Dashboard | **done** |
 | 10 | Polish | **done** |
@@ -351,5 +351,35 @@ Acceptance: the dashboard reflects real user history accurately.
 
 ## Known issues
 
-- `make up` is untested in this environment (see assumption 2).
-- Sparring is not human-like until Maia is installed (see assumption 3).
+1. **`make up` is untested here.** The Docker daemon does not run in this build
+   container, so the Compose stack could not be executed. Everything was verified with
+   the same services running natively. Assumption 2.
+2. **Sparring is not human-like until Maia is installed.** `lc0` is unavailable here.
+   The interface and the honest labelling are in place; `scripts/download_maia.sh` and
+   `engines/README.md` cover enabling it, with no application code changes. Assumption 3.
+3. **Live username import is unverified.** The network policy blocks `lichess.org` and
+   `api.chess.com`. The clients are tested against a mocked transport that exercises the
+   real parsing, pagination and error paths. Assumption 6.
+4. **The coaching brain ran on the template fallback throughout.** No
+   `ANTHROPIC_API_KEY` was available, so the Claude path is verified against a fake
+   client covering the request shape, structured lessons, refusal handling and malformed
+   JSON, rather than against the live API. Correctness never depends on the model, so
+   this does not weaken any acceptance criterion, but the *quality of the prose* is the
+   one thing that has not been seen in production. Assumption 7.
+5. **The puzzle bank is small.** 28 verified puzzles is enough to demonstrate selection,
+   grading and spaced repetition, and enough for the ten-position assessment. A real
+   deployment should run `scripts/import_lichess_puzzles.py` before onboarding learners.
+6. **Background jobs run in-process.** The worker pool is the right size for one learner
+   at a time. The `submit`/`status` interface is what callers depend on, so moving to RQ
+   or Celery is a change inside `app/services/jobs.py`.
+
+## Test summary
+
+| Suite | Count | Command |
+|---|---|---|
+| Backend | 165 | `cd backend && pytest` |
+| Frontend | 13 | `cd frontend && npm run test` |
+| Typecheck | clean | `cd frontend && npx tsc --noEmit` |
+| Production build | clean | `cd frontend && npm run build` |
+
+Engine-heavy end-to-end tests are marked `slow`; `pytest -m "not slow"` skips them.
