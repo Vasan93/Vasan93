@@ -8,8 +8,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 |---|---|---|
 | 0 | Scaffolding | **done** |
 | 1 | Auth & profile | **done** |
-| 2 | Engine service (Stockfish) | next |
-| 3 | Board & game import | pending |
+| 2 | Engine service (Stockfish) | **done** |
+| 3 | Board & game import | next |
 | 4 | Game review + weakness seeding | pending |
 | 5 | Coaching brain | pending |
 | 6 | Assessment flow | pending |
@@ -85,6 +85,36 @@ Acceptance: a user can register, log in, set language, and stay logged in.
   `localStorage`; a reload restores the session through `GET /auth/me`.
 - Verified: 10 backend tests pass; browser run signs up in Tamil, switches to a
   profile page, and survives a reload still authenticated.
+
+## Phase 2 — Engine service (done)
+
+Acceptance: given a FEN and a move, the service returns the best move, an evaluation
+and a correct classification, verified by tests on known positions.
+
+- `app/engines/base.py` holds the interface: `AnalysisEngine.analyze` / `.classify_move`
+  and `SparringEngine.get_human_move`. Nothing above this package touches a binary.
+- `app/engines/stockfish.py` wraps Stockfish over UCI with a bounded depth-and-time
+  limit, a Redis-backed result cache, automatic restart on engine death, and strict FEN
+  validation. An illegal position crashes the Stockfish process rather than erroring, so
+  the validation guard is load-bearing, not decorative.
+- Move labels combine centipawn loss with win-probability loss and take the milder of
+  the two. The same 200cp drop is a blunder in an equal position and only an inaccuracy
+  when already winning by a queen, which is the fair judgement.
+- A forced mate overrides that softening in both directions: missing mate while winning
+  is still flagged, because win probability barely moves and a coach must not stay quiet.
+- `app/engines/motifs.py` names the mistake: missed mate, allowed mate, hung piece,
+  missed capture, missed fork, missed pin, missed skewer, missed discovered attack,
+  ignored threat, plus opening-principle and endgame patterns. Detection can only emit
+  real taxonomy keys, enforced by a test.
+- `app/engines/boardlib.py` provides the primitives, including a recursive static
+  exchange evaluator played on a real board so pins, x-rays and promotions are handled.
+- `app/weakness/taxonomy.py` defines the 24-key taxonomy from Section 11, each key
+  carrying a teaching topic and the Lichess puzzle themes that train it.
+- Endpoints: `POST /api/engine/analyze`, `POST /api/engine/classify`,
+  `GET /api/engine/sparring-info`, all authenticated and rate limited.
+- Verified: 40 backend tests pass. Live checks show the start position evaluated at
+  +46 for e4, `Nd4` classified as a mistake with motif `hung_piece`, an illegal FEN
+  rejected with 400, and unauthenticated access rejected with 401.
 
 ## Known issues
 

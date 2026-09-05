@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, health
+from app.api.routes import auth, engine, health
 from app.core.config import settings
 from app.core.logging import get_logger
 
@@ -26,6 +26,7 @@ app.add_middleware(
 
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
+app.include_router(engine.router, prefix="/api")
 
 
 @app.on_event("startup")
