@@ -83,3 +83,25 @@ def test_profile_update_changes_language_and_goal(auth_client: TestClient) -> No
 def test_languages_endpoint_lists_options(client: TestClient) -> None:
     langs = client.get("/api/auth/languages").json()
     assert "English" in langs and "Tamil" in langs and len(langs) > 10
+
+
+def test_rate_limiter_counts_and_expires() -> None:
+    """The in-memory fallback must expire counters, or a Redis-less deploy locks users out."""
+    import time
+
+    from app.core.cache import Cache
+
+    cache = Cache(url="redis://127.0.0.1:6399/0")  # unreachable: forces the memory backend
+    assert cache.backend == "memory"
+    assert cache.incr_with_ttl("k", 1) == 1
+    assert cache.incr_with_ttl("k", 1) == 2
+    time.sleep(1.1)
+    assert cache.incr_with_ttl("k", 1) == 1
+
+
+def test_signup_rate_limit_eventually_rejects(client: TestClient) -> None:
+    for index in range(10):
+        res = client.post("/api/auth/signup", json={**SIGNUP, "email": f"user{index}@example.com"})
+        assert res.status_code == 201, res.text
+    blocked = client.post("/api/auth/signup", json={**SIGNUP, "email": "one-too-many@example.com"})
+    assert blocked.status_code == 429

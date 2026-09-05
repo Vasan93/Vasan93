@@ -19,6 +19,7 @@ def setup_logging() -> None:
     root.handlers[:] = [handler]
     root.setLevel(getattr(logging, settings.log_level.upper(), logging.INFO))
     logging.getLogger("chess.engine").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     _configured = True
 
 

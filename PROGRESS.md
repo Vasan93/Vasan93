@@ -9,8 +9,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | 0 | Scaffolding | **done** |
 | 1 | Auth & profile | **done** |
 | 2 | Engine service (Stockfish) | **done** |
-| 3 | Board & game import | next |
-| 4 | Game review + weakness seeding | pending |
+| 3 | Board & game import | **done** |
+| 4 | Game review + weakness seeding | next |
 | 5 | Coaching brain | pending |
 | 6 | Assessment flow | pending |
 | 7 | Curriculum, puzzles & SRS | pending |
@@ -54,7 +54,12 @@ Running log of what is done, what is next, known issues, and every assumption ma
 5. **Redis is optional at runtime.** `app.core.cache.Cache` falls back to an in-process
    dict so a contributor without Redis can still run the app. `/api/health` reports which
    backend is live.
-6. **No `ANTHROPIC_API_KEY` in this environment.** The coaching brain is therefore built
+6. **Live username import cannot be exercised here.** This container's network policy
+   blocks `lichess.org` and `api.chess.com` (only package registries are reachable), so
+   `POST /games/import/username` is verified against a mocked HTTP transport that
+   exercises the real parsing, pagination and error paths. PGN upload, the primary
+   import path, is verified live.
+7. **No `ANTHROPIC_API_KEY` in this environment.** The coaching brain is therefore built
    against its interface and exercised through a template fallback plus mocked-client
    tests. Correctness (move legality, evaluations, comprehension-check keys) never depends
    on the LLM, so this does not weaken the acceptance criteria.
@@ -115,6 +120,31 @@ and a correct classification, verified by tests on known positions.
 - Verified: 40 backend tests pass. Live checks show the start position evaluated at
   +46 for e4, `Nd4` classified as a mistake with motif `hung_piece`, an illegal FEN
   rejected with 400, and unauthenticated access rejected with 401.
+
+## Phase 3 — Board & game import (done)
+
+Acceptance: a user can import a game and step through it on the board.
+
+- `app/services/pgn.py` parses PGN into per-ply records with the position before each
+  move, handling comments, variations and NAGs.
+- **Truncated PGNs are rejected rather than silently shortened.** `python-chess` drops
+  move tokens it cannot parse and reports no error, so a corrupted file would import as
+  a shorter game that was never played and be coached as fact. The parser counts the
+  move tokens written in the movetext and refuses the import when that disagrees with
+  what parsed. Splitting a multi-game file slices the original characters instead of
+  re-serialising, because re-serialising would erase the evidence.
+- `app/services/game_sources.py` fetches public games from Lichess and Chess.com, with
+  readable errors for unknown players and rate limiting.
+- Endpoints: `POST /api/games/import/pgn` (single or multi-game),
+  `POST /api/games/import/username`, `GET /api/games`, `GET /api/games/{id}`,
+  `DELETE /api/games/{id}`. Games are private to their owner, enforced by a test.
+- Frontend: import form, game list, and a board viewer with a synced move list and
+  keyboard playback (arrow keys, Home, End).
+- **Fixed a real cache bug found by the tests.** The in-memory fallback ignored TTL, so
+  a deployment without Redis would keep rate-limit counters for ever and lock users out.
+  The fallback now expires keys with the same semantics as Redis.
+- Verified: 67 backend tests pass. A browser run signs up, imports Legall's Mate, opens
+  it, and steps to the final position with the move list highlighting `Nd5#`.
 
 ## Known issues
 

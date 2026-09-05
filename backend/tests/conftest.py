@@ -29,6 +29,15 @@ def _schema() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
+def _clean_cache() -> Iterator[None]:
+    """Rate-limit counters must not leak between tests."""
+    from app.core.cache import get_cache
+
+    get_cache().clear()
+    yield
+
+
+@pytest.fixture(autouse=True)
 def _clean_tables() -> Iterator[None]:
     yield
     with SessionLocal() as db:

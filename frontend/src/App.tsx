@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
+import GamesPage from './pages/GamesPage'
+import GameViewerPage from './pages/GameViewerPage'
 import ProfilePage from './pages/ProfilePage'
 import { useAuth } from './store/auth'
 
@@ -28,6 +30,8 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
+          <Route path="games" element={<GamesPage />} />
+          <Route path="games/:gameId" element={<GameViewerPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
