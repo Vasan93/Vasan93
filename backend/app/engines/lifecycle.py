@@ -25,9 +25,11 @@ _hooked = False
 
 
 def _run_closers() -> None:
+    # The registry is *not* cleared. Engines restart on demand after being closed, so a
+    # one-shot registry would leave the restarted process with no cleanup, and its
+    # non-daemon thread would hang the interpreter at exit.
     with _lock:
         closers = list(_closers)
-        _closers.clear()
     for close in closers:
         try:
             close()
@@ -48,7 +50,10 @@ def _install_hook() -> None:
 
 
 def register_closer(close: Callable[[], None]) -> None:
-    """Close this engine when the interpreter shuts down."""
+    """Close this engine when the interpreter shuts down.
+
+    Closers must be idempotent: callers may also close explicitly.
+    """
     with _lock:
         _closers.append(close)
     _install_hook()

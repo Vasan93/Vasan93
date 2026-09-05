@@ -42,12 +42,18 @@ def test_successes_reduce_confidence() -> None:
     assert confidence_from(1.0, success_count=5) == 0.0
 
 
-def test_status_transitions_require_spaced_successes() -> None:
+def test_status_never_retires_on_success_count_alone() -> None:
+    """Retirement needs *spaced* success, which only the SRS card can judge."""
     assert status_for(0.8, 0) == "active"
     assert status_for(0.4, 2) == "improving"
-    assert status_for(0.1, 3) == "retired"
-    # High confidence blocks retirement even with successes.
-    assert status_for(0.9, 3) == "improving"
+    assert status_for(0.1, 3) == "improving"
+
+    from app.weakness.model import eligible_to_retire
+
+    ready = WeaknessScore("back_rank", success_count=3, confidence=0.1)
+    assert eligible_to_retire(ready)
+    still_confident = WeaknessScore("back_rank", success_count=3, confidence=0.9)
+    assert not eligible_to_retire(still_confident)
 
 
 def test_aggregate_weighs_severity() -> None:
@@ -74,6 +80,12 @@ def test_failure_reopens_an_improving_weakness() -> None:
     record_success(score)
     record_success(score)
     assert score.status == "improving"
+    record_failure(score)
+    assert score.status == "active"
+
+
+def test_a_retired_weakness_reopens_on_failure() -> None:
+    score = WeaknessScore("hanging_pieces", evidence_count=3, evidence_weight=3.0, status="retired")
     record_failure(score)
     assert score.status == "active"
 

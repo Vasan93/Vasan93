@@ -38,7 +38,8 @@ def learner_context(db: Session, user: User, weakness_limit: int = 4) -> Learner
     )
 
 
-def _log(db: Session, user: User, kind: str, response: CoachingResponse, notes: str = "") -> None:
+def log_exchange(db: Session, user: User, kind: str, response: CoachingResponse, notes: str = "") -> None:
+    """Record one coaching exchange for later quality review."""
     record(
         db,
         user_id=user.id,
@@ -85,7 +86,7 @@ def explain_move(db: Session, user: User, move: AnalyzedMove) -> CoachingRespons
 
         response = TemplateBrain().explain_mistake(learner, facts)
         response.notes.append(str(exc))
-    _log(db, user, "mistake", response)
+    log_exchange(db, user, "mistake", response)
     return response
 
 
@@ -192,7 +193,7 @@ def create_lesson(db: Session, user: User, taxonomy_key: str, reason: str = "") 
     )
     db.add(lesson)
     db.flush()
-    _log(db, user, "lesson", response, notes="; ".join(notes))
+    log_exchange(db, user, "lesson", response, notes="; ".join(notes))
     return lesson
 
 
@@ -236,7 +237,7 @@ def grade_lesson_check(db: Session, user: User, lesson: Lesson, student_answer: 
     lesson.score = 1.0 if correct else 0.0
     lesson.passed = correct
     db.flush()
-    _log(db, user, "check", response)
+    log_exchange(db, user, "check", response)
 
     return {
         "correct": correct,
@@ -259,7 +260,7 @@ def chat(db: Session, user: User, message: str, history: list[dict[str, str]] | 
 
         response = TemplateBrain().chat(learner, message, history or [])
         response.notes.append(str(exc))
-    _log(db, user, "chat", response)
+    log_exchange(db, user, "chat", response)
     return response
 
 
@@ -273,7 +274,7 @@ def summarise_assessment(db: Session, user: User, facts: dict) -> CoachingRespon
 
         response = TemplateBrain().assessment_summary(learner, facts)
         response.notes.append(str(exc))
-    _log(db, user, "summary", response)
+    log_exchange(db, user, "summary", response)
     return response
 
 
@@ -287,6 +288,7 @@ def response_payload(response: CoachingResponse) -> dict:
 
 __all__ = [
     "chat",
+    "log_exchange",
     "create_lesson",
     "explain_move",
     "grade_lesson_check",

@@ -12,8 +12,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | 3 | Board & game import | **done** |
 | 4 | Game review + weakness seeding | **done** |
 | 5 | Coaching brain | **done** |
+| 7 | Curriculum, puzzles & SRS | **done** |
 | 6 | Assessment flow | next |
-| 7 | Curriculum, puzzles & SRS | pending |
 | 8 | Practice sparring | pending |
 | 9 | Dashboard | pending |
 | 10 | Polish | pending |
@@ -205,6 +205,49 @@ language, tied to a weakness.
   client (request shape, structured lessons, refusal handling, malformed JSON). A browser
   run explains a blunder in context and completes a lesson whose check is graded against
   the engine.
+
+## Phase 7 — Curriculum, puzzles & SRS (done)
+
+**Built before Phase 6.** The adaptive assessment serves calibrated puzzles, so it needs
+the puzzle bank that this phase creates. Doing them in the brief's order would have meant
+building the assessment against a bank that did not exist yet.
+
+Acceptance: the app serves the right next puzzle for the learner's top due weakness, and
+progression is tracked.
+
+- `data/puzzles.seed.json` holds 28 curated puzzles across 15 taxonomy keys, every one
+  verified against Stockfish by `scripts/build_seed_puzzles.py`. Verification is in two
+  modes, because a single rule was wrong for half the bank:
+  - **Tactical** puzzles must have one answer: the stated move must be the engine's, and
+    clearly better than the runner-up. On mating positions the comparison is by *mate
+    distance*, since folded mate scores put mate-in-1 and mate-in-3 two centipawns apart.
+  - **Concept** puzzles teach judgement, where several moves are reasonable. The stated
+    move only has to be within tolerance of the best, and grading uses the same tolerance
+    so a second good move is not marked wrong.
+  Eight positions were dropped outright because the engine disagreed with the intended
+  point. A puzzle that cannot be graded fairly is not shipped.
+- `scripts/import_lichess_puzzles.py` imports a balanced sample of the open Lichess
+  database (CC0), capped per taxonomy key and per rating band so every level stays
+  calibrated.
+- `app/curriculum/srs.py` is an SM-2 scheduler, pure and tested. Intervals grow
+  1 → 3 → 8 → 23 days; a miss resets the interval and costs a success; solving quickly
+  raises ease more than grinding it out.
+- `app/curriculum/service.py` picks the highest-confidence active weakness whose card is
+  due, then a puzzle near the learner's rating (150 below to 250 above, targeting slightly
+  above for stretch), skipping anything already solved.
+- **Retirement has one authority.** The weakness model and the SRS card were both
+  deciding it, and disagreeing. Counting successes cannot tell crammed practice from
+  spaced practice, so `status_for` no longer returns "retired" at all: the card decides,
+  and a lapse reopens the weakness.
+- Endpoints: `GET /api/puzzles/next`, `POST /api/puzzles/{id}/attempt`, `GET /api/curriculum`.
+- Frontend: a training page with a playable board (drag or click-to-move), coach feedback
+  on every attempt, and the due list.
+- **Fixed a second shutdown hang.** Cleanup handlers were consumed when they ran, so an
+  engine restarted after shutdown had no cleanup registered and its non-daemon thread hung
+  the interpreter. The registry is no longer cleared.
+- Verified: 124 backend tests pass and the suite exits cleanly. A browser run reviews a
+  game, is served a puzzle matching its top weakness, gets the wrong-answer branch right,
+  and moves on to the next weakness.
 
 ## Known issues
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, coach, engine, games, health, review
+from app.api.routes import auth, coach, engine, games, health, puzzles, review
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.engines.lifecycle import close_all
@@ -31,6 +31,7 @@ app.include_router(engine.router, prefix="/api")
 app.include_router(games.router, prefix="/api")
 app.include_router(review.router, prefix="/api")
 app.include_router(coach.router, prefix="/api")
+app.include_router(puzzles.router, prefix="/api")
 
 
 @app.on_event("startup")

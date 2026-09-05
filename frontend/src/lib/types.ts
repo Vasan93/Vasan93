@@ -147,3 +147,47 @@ export interface CheckResult {
   source: string
   language_fallback: boolean
 }
+
+export interface PuzzleOut {
+  id: string
+  fen: string
+  rating: number
+  kind: 'tactical' | 'concept'
+  themes: string[]
+  taxonomy_keys: string[]
+  targets: string
+  targets_label: string
+  side_to_move: 'white' | 'black'
+  source: string
+}
+
+export interface PuzzleAttemptResult {
+  correct: boolean
+  solution: string
+  cp_loss: number
+  weakness_key: string
+  weakness_label: string
+  confidence: number
+  interval_days: number
+  successes: number
+  next_due_at: string | null
+  retired: boolean
+  feedback: string
+  feedback_source: string
+}
+
+export interface DueCard {
+  weakness_key: string
+  label: string
+  confidence: number
+  due_at: string | null
+  interval_days: number
+  successes: number
+  status: string
+}
+
+export interface Curriculum {
+  due: DueCard[]
+  total_active: number
+  puzzles_available: number
+}

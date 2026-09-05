@@ -70,6 +70,9 @@ class StockfishEngine:
         self._lock = threading.Lock()
         self._engine: chess.engine.SimpleEngine | None = None
         self._start()
+        # Registered here rather than at the singleton accessor: any instance holds a
+        # child process on a non-daemon thread, so any instance can hang the interpreter.
+        register_closer(self.close)
 
     # ------------------------------------------------------------- lifecycle
     def _start(self) -> None:
@@ -308,5 +311,4 @@ def get_analysis_engine() -> StockfishEngine:
     with _engine_lock:
         if _engine is None:
             _engine = StockfishEngine()
-            register_closer(_engine.close)
     return _engine

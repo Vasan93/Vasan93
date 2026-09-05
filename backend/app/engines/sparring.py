@@ -44,6 +44,7 @@ class SparringService:
         self._stockfish: chess.engine.SimpleEngine | None = None
         self._random = random.Random(seed)
         self.weights_dir = Path(settings.maia_weights_dir)
+        register_closer(self.close)
 
     # ------------------------------------------------------------------ maia
     def maia_weight_file(self, band: int) -> Path | None:
@@ -185,7 +186,6 @@ def get_sparring_engine() -> SparringService:
     with _sparring_lock:
         if _sparring is None:
             _sparring = SparringService()
-            register_closer(_sparring.close)
     return _sparring
 
 

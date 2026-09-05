@@ -65,12 +65,21 @@ def confidence_from(evidence_weight: float, success_count: int = 0) -> float:
 
 
 def status_for(confidence: float, success_count: int) -> str:
-    """active -> improving -> retired. A weakness only retires after spaced successes."""
-    if success_count >= RETIRE_SUCCESSES and confidence <= RETIRE_CONFIDENCE:
-        return "retired"
+    """active -> improving. Retirement is decided elsewhere.
+
+    Counting successes is not enough to call a pattern fixed: they have to be spread
+    over growing intervals, and only the spaced-repetition card knows that. So this
+    function never returns "retired" -- `app.curriculum.service` does that when the card
+    says the learner has held the pattern over time.
+    """
     if success_count >= IMPROVING_SUCCESSES:
         return "improving"
     return "active"
+
+
+def eligible_to_retire(score: "WeaknessScore") -> bool:
+    """Whether confidence has fallen far enough for retirement to be honest."""
+    return score.success_count >= RETIRE_SUCCESSES and score.confidence <= RETIRE_CONFIDENCE
 
 
 def aggregate(
@@ -104,20 +113,22 @@ def aggregate(
 
     for score in scores.values():
         score.confidence = confidence_from(score.evidence_weight, score.success_count)
-        score.status = status_for(score.confidence, score.success_count)
+        if score.status != "retired":
+            score.status = status_for(score.confidence, score.success_count)
     return scores
 
 
 def record_success(score: WeaknessScore) -> WeaknessScore:
-    """A spaced success against this weakness. Lowers confidence, may retire it."""
+    """A spaced success against this weakness. Lowers confidence."""
     score.success_count += 1
     score.confidence = confidence_from(score.evidence_weight, score.success_count)
-    score.status = status_for(score.confidence, score.success_count)
+    if score.status != "retired":
+        score.status = status_for(score.confidence, score.success_count)
     return score
 
 
 def record_failure(score: WeaknessScore) -> WeaknessScore:
-    """A failed attempt. Adds evidence and reopens a weakness that had been improving."""
+    """A failed attempt. Adds evidence and reopens a weakness, retired or not."""
     score.evidence_count += 1
     score.evidence_weight += SEVERITY_WEIGHT["mistake"]
     score.success_count = max(0, score.success_count - 1)
