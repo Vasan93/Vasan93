@@ -13,8 +13,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | 4 | Game review + weakness seeding | **done** |
 | 5 | Coaching brain | **done** |
 | 7 | Curriculum, puzzles & SRS | **done** |
-| 6 | Assessment flow | next |
-| 8 | Practice sparring | pending |
+| 6 | Assessment flow | **done** |
+| 8 | Practice sparring | next |
 | 9 | Dashboard | pending |
 | 10 | Polish | pending |
 
@@ -248,6 +248,30 @@ progression is tracked.
 - Verified: 124 backend tests pass and the suite exits cleanly. A browser run reviews a
   game, is served a puzzle matching its top weakness, gets the wrong-answer branch right,
   and moves on to the next weakness.
+
+## Phase 6 — Assessment flow (done)
+
+Acceptance: a new user completes the assessment and lands on a personalised starting point.
+
+- `app/assessment/rating.py` estimates a rating with a sequential Elo-style update, each
+  puzzle acting as an opponent at its own difficulty. K falls as evidence accumulates, so
+  ten answers are enough to settle, and the reported confidence interval narrows with the
+  square root of the sample.
+- Difficulty adapts after every answer: stretch up after a solve, step back after a miss,
+  with the step shrinking as the estimate settles.
+- The run samples tactics, endgames, openings and strategy in rotation rather than testing
+  tactics alone, so the resulting profile is not lopsided.
+- Failed positions seed the weakness profile as evidence, exactly like mistakes in a real
+  game, and the coach writes the closing summary from the engine's numbers.
+- Finishing sets the rating, marks the assessment complete, and records the first point on
+  the rating trajectory.
+- Endpoints: `GET /api/assessment`, `POST /api/assessment/answer`,
+  `POST /api/assessment/finish`, `POST /api/assessment/restart`.
+- Frontend: a paced assessment page with a playable board, and a home dashboard that
+  routes a new learner into it and shows their top three afterwards.
+- Verified: 139 backend tests pass. A browser run signs up, answers ten positions, and
+  lands on a rating of 1183 give or take 111, with a coach summary and a first weakness
+  carrying a lesson button.
 
 ## Known issues
 

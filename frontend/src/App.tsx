@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
+import AssessmentPage from './pages/AssessmentPage'
 import GamesPage from './pages/GamesPage'
 import GameViewerPage from './pages/GameViewerPage'
 import LessonPage from './pages/LessonPage'
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="games" element={<GamesPage />} />
           <Route path="games/:gameId" element={<GameViewerPage />} />
           <Route path="weaknesses" element={<WeaknessesPage />} />
+          <Route path="assessment" element={<AssessmentPage />} />
           <Route path="train" element={<TrainPage />} />
           <Route path="lessons" element={<LessonsPage />} />
           <Route path="lessons/:lessonId" element={<LessonPage />} />

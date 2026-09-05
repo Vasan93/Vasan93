@@ -191,3 +191,27 @@ export interface Curriculum {
   total_active: number
   puzzles_available: number
 }
+
+export interface AssessmentStatus {
+  answered: number
+  total: number
+  finished: boolean
+  rating_so_far: number
+  next_puzzle: PuzzleOut | null
+}
+
+export interface AssessmentAnswerResult {
+  correct: boolean
+  solution: string
+  status: AssessmentStatus
+}
+
+export interface AssessmentResult {
+  rating: number
+  confidence_interval: number
+  answered: number
+  correct: number
+  area_summary: string
+  top_weaknesses: Weakness[]
+  summary: CoachingText
+}
