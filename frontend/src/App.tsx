@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 import AssessmentPage from './pages/AssessmentPage'
+import DashboardPage from './pages/DashboardPage'
 import GamesPage from './pages/GamesPage'
 import GameViewerPage from './pages/GameViewerPage'
 import LessonPage from './pages/LessonPage'
@@ -36,6 +37,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
+          <Route path="progress" element={<DashboardPage />} />
           <Route path="games" element={<GamesPage />} />
           <Route path="games/:gameId" element={<GameViewerPage />} />
           <Route path="weaknesses" element={<WeaknessesPage />} />

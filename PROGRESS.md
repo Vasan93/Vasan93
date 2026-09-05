@@ -15,8 +15,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | 7 | Curriculum, puzzles & SRS | **done** |
 | 6 | Assessment flow | **done** |
 | 8 | Practice sparring | **done** |
-| 9 | Dashboard | next |
-| 10 | Polish | pending |
+| 9 | Dashboard | **done** |
+| 10 | Polish | next |
 
 ## Stack decisions (Section 19.1)
 
@@ -292,6 +292,34 @@ Acceptance: a user can play a full game and get a coached review.
   link never appeared. A finished game is exactly when that link matters most.
 - Verified: 152 backend tests pass. A browser run plays three moves against the bot,
   resigns, and reaches the finished review.
+
+## Phase 9 — Dashboard (done)
+
+Acceptance: the dashboard reflects real user history accurately.
+
+- `GET /api/dashboard` aggregates the rating trajectory, per-weakness progress, daily
+  practice, streaks, lessons passed, games reviewed and average game accuracy.
+- Streaks are computed over active days, and a streak survives until the end of the
+  following day rather than dying at midnight.
+- The page leads with the honest framing: **a beginner's rating moves slowly and noisily,
+  so retired weaknesses are the better measure of a good month.** Weakness progress sits
+  directly under the rating chart for that reason.
+- Charts follow one method throughout. Every chart plots a single series, so identity
+  never rides on colour: headings name what is plotted, status is a text badge, and no
+  chart carries a legend it does not need. The one mark hue (`#a85f28`) was validated
+  against the real card surface for lightness band, chroma floor and 3:1 contrast, rather
+  than picked by eye.
+- Marks follow the spec: 2px round-capped line, 4px-radius column tops capped at 24px so
+  the band keeps its air, dots with a 2px surface ring, hairline recessive gridlines, and
+  text in ink tokens rather than the series colour. The rating chart carries a crosshair
+  tooltip where the value leads and the date follows, plus a "Show numbers" table so no
+  value is gated behind a hover.
+- **Two fixes came from looking at the render, not from the tests.** The rating axis was
+  landing on ticks like 954 and 1229, so the domain now snaps to round numbers; and the
+  line was drawn as a spline, which overshot between readings and drew a dip to 995 that
+  the learner never had. It draws straight segments now.
+- Verified: 162 backend tests pass. A browser run completes an assessment, reviews a game,
+  solves puzzles, and the dashboard reports each of them.
 
 ## Known issues
 

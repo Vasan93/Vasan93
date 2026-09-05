@@ -8,6 +8,7 @@ const links = [
   { to: '/play', label: 'Play' },
   { to: '/weaknesses', label: 'Work on' },
   { to: '/lessons', label: 'Lessons' },
+  { to: '/progress', label: 'Progress' },
   { to: '/profile', label: 'Profile' },
 ]
 

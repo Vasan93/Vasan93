@@ -233,3 +233,44 @@ export interface PracticeState {
   legal_move_count: number
   review_status: 'pending' | 'queued' | 'running' | 'done' | 'failed'
 }
+
+export interface RatingPoint {
+  rating: number
+  source: string
+  recorded_at: string
+}
+
+export interface DailyActivity {
+  day: string
+  puzzles: number
+  correct: number
+}
+
+export interface WeaknessProgress {
+  taxonomy_key: string
+  label: string
+  category: string
+  status: 'active' | 'improving' | 'retired'
+  confidence: number
+  evidence_count: number
+  success_count: number
+  attempts: number
+  solved: number
+  accuracy: number
+}
+
+export interface DashboardData {
+  rating: number
+  rating_history: RatingPoint[]
+  rating_change_30d: number
+  streak_days: number
+  best_streak: number
+  puzzles_attempted: number
+  puzzles_solved: number
+  lessons_completed: number
+  games_reviewed: number
+  average_accuracy: number | null
+  weaknesses: WeaknessProgress[]
+  activity: DailyActivity[]
+  status_counts: Record<string, number>
+}

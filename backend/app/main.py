@@ -8,6 +8,7 @@ from app.api.routes import (
     assessment,
     auth,
     coach,
+    dashboard,
     engine,
     games,
     health,
@@ -44,6 +45,7 @@ app.include_router(review.router, prefix="/api")
 app.include_router(coach.router, prefix="/api")
 app.include_router(puzzles.router, prefix="/api")
 app.include_router(practice.router, prefix="/api")
+app.include_router(dashboard.router, prefix="/api")
 
 
 @app.on_event("startup")
