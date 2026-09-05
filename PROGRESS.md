@@ -7,8 +7,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | Phase | Name | State |
 |---|---|---|
 | 0 | Scaffolding | **done** |
-| 1 | Auth & profile | next |
-| 2 | Engine service (Stockfish) | pending |
+| 1 | Auth & profile | **done** |
+| 2 | Engine service (Stockfish) | next |
 | 3 | Board & game import | pending |
 | 4 | Game review + weakness seeding | pending |
 | 5 | Coaching brain | pending |
@@ -68,6 +68,23 @@ Acceptance: everything comes online and the frontend shows a page that reads fro
 - Frontend page fetches `/api/health` through the Vite proxy and renders each component.
 - Verified: backend `status: ok` (postgres ok, redis live, Stockfish found), Vite dev
   server serving, proxy reaching the API, `tsc --noEmit` clean.
+
+## Phase 1 — Auth & profile (done)
+
+Acceptance: a user can register, log in, set language, and stay logged in.
+
+- `POST /api/auth/signup`, `POST /api/auth/login`, `GET|PATCH /api/auth/me`,
+  `GET /api/auth/languages` (21 languages, including Tamil, Hindi, Telugu, Kannada,
+  Malayalam, Bengali and Marathi).
+- argon2 password hashing, JWT bearer tokens, rate limits on signup and login,
+  identical error text for unknown email and wrong password.
+- Startup warns loudly if `JWT_SECRET` is short or still the default.
+- Full Section 8 schema declared up front and captured in the first Alembic migration,
+  so foreign keys stay consistent as later phases fill the tables.
+- Frontend: signup/login page, app shell, profile page. Token persists in
+  `localStorage`; a reload restores the session through `GET /auth/me`.
+- Verified: 10 backend tests pass; browser run signs up in Tamil, switches to a
+  profile page, and survives a reload still authenticated.
 
 ## Known issues
 

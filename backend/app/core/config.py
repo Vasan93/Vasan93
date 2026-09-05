@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     # Cache / queue
     redis_url: str = "redis://localhost:6379/0"
 
-    # Auth
-    jwt_secret: str = "change-me-in-production"
+    # Auth. HS256 wants at least 32 bytes; a short secret is a real weakness, not a nit.
+    jwt_secret: str = "change-me-in-production-with-a-long-random-value"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 7
 
@@ -57,6 +57,16 @@ class Settings(BaseSettings):
         if self.lc0_path and Path(self.lc0_path).exists():
             return self.lc0_path
         return shutil.which("lc0")
+
+
+    def warn_if_insecure(self) -> list[str]:
+        """Configuration problems worth shouting about at startup."""
+        problems: list[str] = []
+        if len(self.jwt_secret) < 32:
+            problems.append("JWT_SECRET is shorter than 32 bytes; generate one with `openssl rand -hex 32`.")
+        if self.jwt_secret.startswith("change-me"):
+            problems.append("JWT_SECRET is still the default value. Set a real secret before deploying.")
+        return problems
 
 
 @lru_cache

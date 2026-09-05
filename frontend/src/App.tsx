@@ -1,37 +1,37 @@
-import { useQuery } from '@tanstack/react-query'
-import { api, type Health } from './lib/api'
+import { useEffect } from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import Layout from './components/Layout'
+import AuthPage from './pages/AuthPage'
+import HomePage from './pages/HomePage'
+import ProfilePage from './pages/ProfilePage'
+import { useAuth } from './store/auth'
 
 export default function App() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['health'],
-    queryFn: () => api<Health>('/health'),
-  })
+  const { status, restore } = useAuth()
+
+  useEffect(() => {
+    void restore()
+  }, [restore])
+
+  if (status === 'idle' || (status === 'loading' && !useAuth.getState().user)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-ink/50">
+        <span className="animate-pulse">Loading…</span>
+      </div>
+    )
+  }
+
+  if (status !== 'authenticated') return <AuthPage />
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="font-serif text-4xl font-semibold tracking-tight">GrandmasterAI</h1>
-      <p className="mt-2 text-ink/70">Your personal chess coach. Engine truth, human teaching.</p>
-
-      <section className="mt-10 rounded-xl border border-ink/10 bg-white/60 p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">Backend status</h2>
-        {isLoading && <p className="mt-3 text-ink/60">Checking…</p>}
-        {error && <p className="mt-3 text-red-700">Backend unreachable.</p>}
-        {data && (
-          <>
-            <p className="mt-3 text-lg font-medium">
-              {data.service}: <span className={data.status === 'ok' ? 'text-moss' : 'text-accent'}>{data.status}</span>
-            </p>
-            <dl className="mt-4 grid gap-2 text-sm">
-              {Object.entries(data.components).map(([key, value]) => (
-                <div key={key} className="flex justify-between gap-4 border-b border-ink/5 pb-1">
-                  <dt className="text-ink/60">{key}</dt>
-                  <dd className="font-mono text-xs">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </>
-        )}
-      </section>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
