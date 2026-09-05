@@ -215,3 +215,21 @@ export interface AssessmentResult {
   top_weaknesses: Weakness[]
   summary: CoachingText
 }
+
+export interface PracticeState {
+  game_id: number
+  fen: string
+  user_color: 'white' | 'black'
+  turn: 'white' | 'black'
+  move_history: string[]
+  last_move_uci: string | null
+  is_over: boolean
+  result: string | null
+  outcome_text: string
+  opponent_kind: 'maia' | 'stockfish-limited'
+  opponent_rating: number
+  opponent_note: string
+  in_check: boolean
+  legal_move_count: number
+  review_status: 'pending' | 'queued' | 'running' | 'done' | 'failed'
+}

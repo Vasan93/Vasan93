@@ -14,8 +14,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | 5 | Coaching brain | **done** |
 | 7 | Curriculum, puzzles & SRS | **done** |
 | 6 | Assessment flow | **done** |
-| 8 | Practice sparring | next |
-| 9 | Dashboard | pending |
+| 8 | Practice sparring | **done** |
+| 9 | Dashboard | next |
 | 10 | Polish | pending |
 
 ## Stack decisions (Section 19.1)
@@ -272,6 +272,26 @@ Acceptance: a new user completes the assessment and lands on a personalised star
 - Verified: 139 backend tests pass. A browser run signs up, answers ten positions, and
   lands on a rating of 1183 give or take 111, with a coach summary and a first weakness
   carrying a lesson button.
+
+## Phase 8 — Practice sparring (done)
+
+Acceptance: a user can play a full game and get a coached review.
+
+- `app/practice/service.py` runs the game: the learner's move, then the opponent's reply,
+  with the PGN rebuilt from the move stack each turn so headers and result stay accurate.
+  Resignation passes an explicit result rather than rewriting the header text.
+- The opponent comes from the Phase 2 sparring interface. Maia when installed, a
+  strength-limited Stockfish otherwise, and the UI says which in plain words instead of
+  pretending. **Until Maia is installed this opponent plays weaker, but less like a person.**
+- Finishing or resigning queues the same review pipeline used for imported games, so a
+  practice game feeds the weakness profile like any other.
+- Endpoints: `POST /api/practice/new`, `GET /api/practice/current`,
+  `GET /api/practice/{id}`, `POST /api/practice/{id}/move`, `POST /api/practice/{id}/resign`.
+- **Fixed a bug found in the browser, not the tests.** `GET /practice/current` filtered out
+  finished games, so the moment a learner resigned the page lost the game and the review
+  link never appeared. A finished game is exactly when that link matters most.
+- Verified: 152 backend tests pass. A browser run plays three moves against the bot,
+  resigns, and reaches the finished review.
 
 ## Known issues
 

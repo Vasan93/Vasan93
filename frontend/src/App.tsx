@@ -8,6 +8,7 @@ import GamesPage from './pages/GamesPage'
 import GameViewerPage from './pages/GameViewerPage'
 import LessonPage from './pages/LessonPage'
 import LessonsPage from './pages/LessonsPage'
+import PlayPage from './pages/PlayPage'
 import ProfilePage from './pages/ProfilePage'
 import TrainPage from './pages/TrainPage'
 import WeaknessesPage from './pages/WeaknessesPage'
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="weaknesses" element={<WeaknessesPage />} />
           <Route path="assessment" element={<AssessmentPage />} />
           <Route path="train" element={<TrainPage />} />
+          <Route path="play" element={<PlayPage />} />
           <Route path="lessons" element={<LessonsPage />} />
           <Route path="lessons/:lessonId" element={<LessonPage />} />
           <Route path="profile" element={<ProfilePage />} />
