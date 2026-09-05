@@ -124,12 +124,29 @@ def _lesson_from_own_games(db: Session, user: User, taxonomy_key: str) -> dict |
         return None
 
     check_source = examples[0]
+    plural = "position" if len(examples) == 1 else "positions"
     return {
         "title": entry.teaching_topic,
-        "opening": f"{entry.description} Here it is in your own games.",
+        "opening": (
+            f"{entry.description} Below {'is' if len(examples) == 1 else 'are'} "
+            f"{len(examples)} {plural} from your own games where it cost you."
+        ),
         "sections": [
-            {"heading": entry.label, "body": entry.description},
-            {"heading": "What to do instead", "body": f"Focus on this: {entry.teaching_topic}."},
+            {
+                "heading": "What goes wrong",
+                "body": (
+                    "The pattern repeats because it is easy to look at your own plan and forget to check "
+                    "the position as it stands. Every move, before you commit, ask the question this "
+                    "lesson is named after."
+                ),
+            },
+            {
+                "heading": "What to do instead",
+                "body": (
+                    f"{entry.teaching_topic}. Do it on every move for a week, even when the position looks "
+                    "quiet. It becomes automatic faster than you would expect."
+                ),
+            },
         ],
         "examples": examples,
         "check": {
@@ -184,11 +201,14 @@ def create_lesson(db: Session, user: User, taxonomy_key: str, reason: str = "") 
         body["check"]["answer"] = grounded.answer_san
         body["check"]["answer_uci"] = grounded.answer_uci
 
+    # The template's own text is written for the prompt, not for the learner, so it is
+    # kept out of the lesson body; only a real generated introduction is shown.
+    intro = response.text if response.source == "claude" else ""
     lesson = Lesson(
         user_id=user.id,
         topic=taxonomy_key,
         language=response.language,
-        transcript=json.dumps({**body, "intro": response.text, "source": response.source}),
+        transcript=json.dumps({**body, "intro": intro, "source": response.source}),
         comprehension_checks=json.dumps([body["check"]]),
     )
     db.add(lesson)

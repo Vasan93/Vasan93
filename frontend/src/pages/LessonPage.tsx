@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 import type { CheckResult, Lesson } from '../lib/types'
 import PositionCard from '../components/PositionCard'
 import { buttonClass, inputClass } from '../components/Field'
+import PageSkeleton from '../components/Skeleton'
 
 export default function LessonPage() {
   const { lessonId } = useParams()
@@ -22,7 +23,7 @@ export default function LessonPage() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['lessons'] }),
   })
 
-  if (isLoading) return <p className="p-10 text-ink/50">Loading lesson…</p>
+  if (isLoading) return <PageSkeleton cards={2} />
   if (!lesson) return <p className="p-10 text-red-700">That lesson could not be loaded.</p>
 
   function onSubmit(event: FormEvent) {

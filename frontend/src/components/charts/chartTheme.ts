@@ -46,7 +46,10 @@ export function roundedAxis(values: number[], step = 50, tickCount = 4): { domai
 
   const rawStep = (max - min) / (tickCount - 1)
   const tickStep = Math.max(step, Math.round(rawStep / step) * step)
-  const ticks: number[] = []
-  for (let value = min; value <= max + 0.5; value += tickStep) ticks.push(value)
+
+  // Keep stepping until the ticks cover the top of the range. Stopping at `max` can
+  // leave the last tick below the highest value, which clips the mark off the chart.
+  const ticks: number[] = [min]
+  while (ticks[ticks.length - 1] < max) ticks.push(ticks[ticks.length - 1] + tickStep)
   return { domain: [min, ticks[ticks.length - 1]], ticks }
 }

@@ -16,7 +16,7 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | 6 | Assessment flow | **done** |
 | 8 | Practice sparring | **done** |
 | 9 | Dashboard | **done** |
-| 10 | Polish | next |
+| 10 | Polish | **done** |
 
 ## Stack decisions (Section 19.1)
 
@@ -320,6 +320,34 @@ Acceptance: the dashboard reflects real user history accurately.
   the learner never had. It draws straight segments now.
 - Verified: 162 backend tests pass. A browser run completes an assessment, reviews a game,
   solves puzzles, and the dashboard reports each of them.
+
+## Phase 10 — Polish (done)
+
+- **Mobile.** Every page overflowed sideways at 390px because nine nav links cannot fit
+  in a row. The nav is now a scroll strip that bleeds to the screen edges and scrolls
+  inside itself, so the page body never scrolls horizontally. Verified across all seven
+  screens.
+- **Session expiry.** A rejected token used to leave the learner staring at error screens
+  on every page. The API layer now clears the session and returns them to sign-in, and it
+  distinguishes that from a failed login, which must not look like an expired session.
+- **Error handling.** A React error boundary keeps one broken screen from taking the app
+  down. Network failures are named in plain words rather than surfacing "Failed to fetch".
+  Every response carries an `X-Request-ID`, and an unhandled server error returns that id
+  without leaking the exception text.
+- **Loading.** Skeletons that hold each screen's shape replaced the bare "Loading…" text.
+- **Bundle.** The main bundle was over 500kB because the chart library loaded on every
+  page. Route-level code splitting cuts it to 225kB, with the chart chunk loading only on
+  the dashboard.
+- **Coaching prose.** Prompt-facing text was reaching the learner: template lessons said
+  "their games" and repeated a paragraph. A test now asserts that prompt text never
+  appears in a lesson.
+- **A bug the tests caught:** the rating axis could place its top tick below the highest
+  reading, which would have clipped the line off the chart.
+- Containers seed the puzzle bank on start, so a fresh `make up` has a usable app.
+- Verified: 165 backend tests, 13 frontend tests, a clean typecheck and a clean
+  production build. A scripted browser run completes the whole journey: sign up in Tamil,
+  assessment, import and review, coach explanation, lesson with a graded check, training,
+  a practice game and its review, the dashboard, and session expiry returning to sign-in.
 
 ## Known issues
 

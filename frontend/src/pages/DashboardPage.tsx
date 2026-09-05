@@ -7,6 +7,7 @@ import RatingChart from '../components/charts/RatingChart'
 import ActivityChart from '../components/charts/ActivityChart'
 import WeaknessProgressChart from '../components/charts/WeaknessProgressChart'
 import { formatDay } from '../components/charts/chartTheme'
+import PageSkeleton from '../components/Skeleton'
 
 function StatTile({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
@@ -49,7 +50,7 @@ export default function DashboardPage() {
     queryFn: () => api<DashboardData>('/dashboard'),
   })
 
-  if (isLoading) return <p className="p-10 text-ink/50">Loading your progress…</p>
+  if (isLoading) return <PageSkeleton cards={3} />
   if (!data) return <p className="p-10 text-red-700">Could not load your progress.</p>
 
   const change = data.rating_change_30d

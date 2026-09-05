@@ -105,3 +105,24 @@ def test_signup_rate_limit_eventually_rejects(client: TestClient) -> None:
         assert res.status_code == 201, res.text
     blocked = client.post("/api/auth/signup", json={**SIGNUP, "email": "one-too-many@example.com"})
     assert blocked.status_code == 429
+
+
+def test_every_response_carries_a_request_id(client: TestClient) -> None:
+    """A failure the learner reports has to be findable in the logs."""
+    res = client.get("/api/health")
+    assert res.headers.get("X-Request-ID")
+
+
+def test_an_unhandled_error_returns_a_traceable_message(client: TestClient) -> None:
+    from app.main import app
+
+    @app.get("/api/_boom_for_tests")
+    def boom() -> None:  # pragma: no cover - exercised through the client
+        raise RuntimeError("deliberate failure")
+
+    with TestClient(app, raise_server_exceptions=False) as fresh:
+        res = fresh.get("/api/_boom_for_tests")
+    assert res.status_code == 500
+    body = res.json()
+    assert body["request_id"]
+    assert "deliberate failure" not in body["detail"], "internal errors must not leak to the client"

@@ -9,6 +9,7 @@ import BoardViewer from '../components/BoardViewer'
 import MoveList from '../components/MoveList'
 import CoachNote from '../components/CoachNote'
 import { buttonClass } from '../components/Field'
+import PageSkeleton from '../components/Skeleton'
 
 export default function GameViewerPage() {
   const { gameId } = useParams()
@@ -49,7 +50,7 @@ export default function GameViewerPage() {
     return map
   }, [review])
 
-  if (isLoading) return <p className="p-10 text-ink/50">Loading game…</p>
+  if (isLoading) return <PageSkeleton cards={2} />
   if (!game) return <p className="p-10 text-red-700">That game could not be loaded.</p>
 
   const fen = game.fens[ply] ?? game.fens[0]

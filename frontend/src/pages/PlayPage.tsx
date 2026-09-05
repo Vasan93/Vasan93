@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 import type { PracticeState } from '../lib/types'
 import PlayableBoard from '../components/PlayableBoard'
 import { buttonClass } from '../components/Field'
+import PageSkeleton from '../components/Skeleton'
 
 type Colour = 'white' | 'black' | 'random'
 
@@ -46,7 +47,7 @@ export default function PlayPage() {
     onSuccess: (state) => queryClient.setQueryData(['practice-current'], state),
   })
 
-  if (isLoading) return <p className="p-10 text-ink/50">Loading…</p>
+  if (isLoading) return <PageSkeleton cards={1} />
 
   if (!game) {
     return (

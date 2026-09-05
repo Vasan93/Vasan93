@@ -378,3 +378,21 @@ def test_fallback_names_the_language_the_learner_asked_for(learner: LearnerConte
     assert response.language == "English"
     assert response.requested_language == "Tamil"
     assert response.language_fallback is True
+
+
+@pytest.mark.slow
+def test_a_template_lesson_reads_as_coaching_not_as_a_prompt(auth_client: TestClient) -> None:
+    """Prompt-facing text must never reach the learner."""
+    _reviewed_game(auth_client)
+    lesson = auth_client.post("/api/coach/lessons", json={"taxonomy_key": "hanging_pieces"}).json()
+
+    prose = " ".join(
+        [lesson["opening"], lesson["intro"], *[section["body"] for section in lesson["sections"]]]
+    ).lower()
+    assert "their games" not in prose, "the coach speaks to the learner, not about them"
+    assert "work through the example position, then answer the check" not in prose
+
+    headings = [section["heading"] for section in lesson["sections"]]
+    assert len(set(headings)) == len(headings)
+    # The opening must not simply repeat a section body.
+    assert lesson["opening"] not in [section["body"] for section in lesson["sections"]]

@@ -1,8 +1,12 @@
 """GrandmasterAI backend entrypoint."""
 from __future__ import annotations
 
-from fastapi import FastAPI
+import time
+import uuid
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.routes import (
     assessment,
@@ -35,6 +39,35 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Slow requests are the ones worth noticing: engine analysis and coaching calls.
+SLOW_REQUEST_MS = 2_000
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Time every request and give failures a traceable id."""
+    request_id = uuid.uuid4().hex[:12]
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        elapsed = (time.perf_counter() - started) * 1000
+        log.exception("request %s %s %s failed after %.0fms", request_id, request.method, request.url.path, elapsed)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Something went wrong on our side.", "request_id": request_id},
+        )
+
+    elapsed = (time.perf_counter() - started) * 1000
+    response.headers["X-Request-ID"] = request_id
+    if elapsed >= SLOW_REQUEST_MS or response.status_code >= 500:
+        log.warning(
+            "slow request %s %s %s -> %d in %.0fms",
+            request_id, request.method, request.url.path, response.status_code, elapsed,
+        )
+    return response
+
 
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")

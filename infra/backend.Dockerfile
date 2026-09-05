@@ -16,4 +16,4 @@ COPY data data
 ENV PYTHONPATH=/app/backend STOCKFISH_PATH=/usr/games/stockfish
 WORKDIR /app/backend
 EXPOSE 8000
-CMD ["sh", "-c", "python -m app.bootstrap && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "python -m app.bootstrap --seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

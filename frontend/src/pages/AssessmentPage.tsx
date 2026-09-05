@@ -7,6 +7,7 @@ import PlayableBoard from '../components/PlayableBoard'
 import CoachNote from '../components/CoachNote'
 import WeaknessCard from '../components/WeaknessCard'
 import { buttonClass } from '../components/Field'
+import PageSkeleton from '../components/Skeleton'
 import { useAuth } from '../store/auth'
 
 export default function AssessmentPage() {
@@ -108,7 +109,7 @@ export default function AssessmentPage() {
     )
   }
 
-  if (!status) return <p className="p-10 text-ink/50">Preparing your assessment…</p>
+  if (!status) return <PageSkeleton cards={1} />
 
   // ------------------------------------------------------------- finished run
   if (status.finished || !status.next_puzzle) {

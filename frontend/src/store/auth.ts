@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api, setToken, getToken } from '../lib/api'
+import { api, setToken, getToken, onSessionExpired } from '../lib/api'
 import type { TokenResponse, User } from '../lib/types'
 
 interface AuthState {
@@ -78,3 +78,8 @@ export const useAuth = create<AuthState>((set) => ({
 
   setUser: (user) => set({ user }),
 }))
+
+// A rejected token anywhere in the app returns the learner to the sign-in screen.
+onSessionExpired(() => {
+  useAuth.setState({ user: null, status: 'anonymous', error: 'Your session has expired. Please sign in again.' })
+})

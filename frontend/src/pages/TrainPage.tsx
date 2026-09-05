@@ -4,6 +4,7 @@ import { api, ApiError } from '../lib/api'
 import type { Curriculum, PuzzleAttemptResult, PuzzleOut } from '../lib/types'
 import PlayableBoard from '../components/PlayableBoard'
 import { buttonClass } from '../components/Field'
+import PageSkeleton from '../components/Skeleton'
 
 export default function TrainPage() {
   const queryClient = useQueryClient()
@@ -53,7 +54,7 @@ export default function TrainPage() {
     await refetch()
   }
 
-  if (isLoading) return <p className="p-10 text-ink/50">Finding the right puzzle for you…</p>
+  if (isLoading) return <PageSkeleton cards={1} />
 
   if (error) {
     const message =
