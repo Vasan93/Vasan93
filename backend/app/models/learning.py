@@ -73,3 +73,29 @@ class Lesson(Base):
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     passed: Mapped[bool | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CoachingLog(Base):
+    """Every prompt and response, kept for quality review.
+
+    Coaching quality is the product. Without the transcript there is no way to tell why
+    an explanation was poor, or whether a prompt change helped.
+    """
+
+    __tablename__ = "coaching_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(32), index=True)  # mistake | lesson | check | summary | chat
+    prompt_version: Mapped[str] = mapped_column(String(16), default="v1")
+    model: Mapped[str] = mapped_column(String(64), default="")
+    language: Mapped[str] = mapped_column(String(32), default="English")
+    system_prompt: Mapped[str] = mapped_column(Text, default="")
+    user_prompt: Mapped[str] = mapped_column(Text, default="")
+    response: Mapped[str] = mapped_column(Text, default="")
+    source: Mapped[str] = mapped_column(String(16), default="claude")  # claude | template
+    input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    guardrail_notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

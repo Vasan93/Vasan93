@@ -3,10 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import type { Arrow, Square } from 'react-chessboard/dist/chessboard/types'
 import { api } from '../lib/api'
-import type { GameDetail, ReviewStatus } from '../lib/types'
+import type { CoachingText, GameDetail, ReviewStatus } from '../lib/types'
 import { describeSwing, labelOf, MOVE_LABELS } from '../lib/moveLabels'
 import BoardViewer from '../components/BoardViewer'
 import MoveList from '../components/MoveList'
+import CoachNote from '../components/CoachNote'
 import { buttonClass } from '../components/Field'
 
 export default function GameViewerPage() {
@@ -27,6 +28,11 @@ export default function GameViewerPage() {
       const state = query.state.data?.state
       return state === 'queued' || state === 'running' ? 1200 : false
     },
+  })
+
+  const explain = useMutation({
+    mutationFn: (ply: number) =>
+      api<CoachingText>('/coach/explain', { method: 'POST', body: JSON.stringify({ game_id: Number(gameId), ply }) }),
   })
 
   const startReview = useMutation({
@@ -150,6 +156,23 @@ export default function GameViewerPage() {
                     {reviewed.best_line.length > 0 && (
                       <p className="mt-2 font-mono text-xs text-ink/50">Better: {reviewed.best_line.slice(0, 6).join(' ')}</p>
                     )}
+
+                    <div className="mt-3">
+                      {explain.data && explain.variables === reviewed.ply ? (
+                        <CoachNote note={explain.data} compact />
+                      ) : (
+                        <button
+                          onClick={() => explain.mutate(reviewed.ply)}
+                          disabled={explain.isPending}
+                          className="rounded-lg border border-accent/40 px-3 py-1.5 text-sm text-accent transition hover:bg-accent/10 disabled:opacity-50"
+                        >
+                          {explain.isPending ? 'Your coach is thinking…' : 'Why was this wrong?'}
+                        </button>
+                      )}
+                      {explain.isError && (
+                        <p className="mt-2 text-sm text-red-700">{(explain.error as Error).message}</p>
+                      )}
+                    </div>
                   </>
                 )}
               </div>

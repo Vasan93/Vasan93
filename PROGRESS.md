@@ -11,8 +11,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | 2 | Engine service (Stockfish) | **done** |
 | 3 | Board & game import | **done** |
 | 4 | Game review + weakness seeding | **done** |
-| 5 | Coaching brain | next |
-| 6 | Assessment flow | pending |
+| 5 | Coaching brain | **done** |
+| 6 | Assessment flow | next |
 | 7 | Curriculum, puzzles & SRS | pending |
 | 8 | Practice sparring | pending |
 | 9 | Dashboard | pending |
@@ -174,6 +174,37 @@ Acceptance: importing a game populates a visible list of weaknesses with confide
 - Verified: 82 backend tests pass. A browser run imports a blunder-filled game, reviews
   it to 70.9% accuracy, shows `14. Nd2` as a blunder with the arrow to `Qxc5`, and lists
   nine weaknesses led by hanging pieces at 80% confidence.
+
+## Phase 5 — Coaching brain (done)
+
+Acceptance: clicking a mistake yields a warm, correct explanation in the learner's
+language, tied to a weakness.
+
+- `app/coaching/prompts/v1.py` holds every template, versioned together so a change in
+  coaching voice is a reviewable diff. The persona names the learner's language and
+  forbids switching, forbids inventing evaluations, and carries their goal.
+- `app/coaching/brain.py` defines the `CoachingBrain` interface with two implementations.
+  `ClaudeBrain` calls Claude with adaptive thinking, low effort for prose, a JSON schema
+  for lessons, and server-side refusal fallbacks so a decline never leaves a learner with
+  nothing. `TemplateBrain` produces engine-grounded text without any model.
+- **The brain never decides chess facts.** `app/coaching/validation.py` checks every
+  position it invents for legality, drops illegal examples, and re-derives every
+  comprehension-check answer from the engine. When the model's key disagrees with
+  Stockfish, the engine wins and the correction is recorded. Student answers are graded
+  by the engine too, with a 50cp margin so a second good move is not marked wrong.
+- Without an API key, lessons are built from the learner's *own* mistake positions rather
+  than invented ones, and a lesson with no evidence behind it is refused rather than
+  fabricated.
+- Every prompt and response is written to `coaching_logs` for quality review.
+- The fallback is honest: responses carry the language actually used alongside the
+  language the learner asked for, and the UI says which.
+- Endpoints: `POST /api/coach/explain`, `POST|GET /api/coach/lessons`,
+  `GET /api/coach/lessons/{id}`, `POST /api/coach/lessons/{id}/check`,
+  `POST /api/coach/chat`. The answer key never leaves the server before the student tries.
+- Verified: 104 backend tests pass, including the full Claude request path against a fake
+  client (request shape, structured lessons, refusal handling, malformed JSON). A browser
+  run explains a blunder in context and completes a lesson whose check is graded against
+  the engine.
 
 ## Known issues
 

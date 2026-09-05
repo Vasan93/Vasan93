@@ -5,6 +5,8 @@ import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 import GamesPage from './pages/GamesPage'
 import GameViewerPage from './pages/GameViewerPage'
+import LessonPage from './pages/LessonPage'
+import LessonsPage from './pages/LessonsPage'
 import ProfilePage from './pages/ProfilePage'
 import WeaknessesPage from './pages/WeaknessesPage'
 import { useAuth } from './store/auth'
@@ -34,6 +36,8 @@ export default function App() {
           <Route path="games" element={<GamesPage />} />
           <Route path="games/:gameId" element={<GameViewerPage />} />
           <Route path="weaknesses" element={<WeaknessesPage />} />
+          <Route path="lessons" element={<LessonsPage />} />
+          <Route path="lessons/:lessonId" element={<LessonPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

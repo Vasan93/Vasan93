@@ -93,3 +93,57 @@ export interface Weakness {
   success_count: number
   status: 'active' | 'improving' | 'retired'
 }
+
+export interface CoachingText {
+  text: string
+  source: 'claude' | 'template'
+  /** The language the text is actually written in. */
+  language: string
+  /** The language the learner asked for; differs only in fallback mode. */
+  requested_language: string
+  language_fallback: boolean
+  notes: string[]
+}
+
+export interface LessonSection {
+  heading: string
+  body: string
+}
+
+export interface LessonExample {
+  fen: string
+  move: string
+  explanation: string
+  from_your_game: boolean
+}
+
+export interface LessonCheck {
+  fen: string
+  question: string
+  hint: string
+}
+
+export interface Lesson {
+  id: number
+  topic: string
+  topic_label: string
+  title: string
+  language: string
+  intro: string
+  source: string
+  opening: string
+  sections: LessonSection[]
+  examples: LessonExample[]
+  check: LessonCheck | null
+  passed: boolean | null
+  score: number | null
+}
+
+export interface CheckResult {
+  correct: boolean
+  best_move: string
+  cp_loss: number
+  feedback: string
+  source: string
+  language_fallback: boolean
+}
