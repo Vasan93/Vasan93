@@ -51,3 +51,45 @@ export interface ImportResult {
   imported: GameSummary[]
   skipped: string[]
 }
+
+export interface ReviewedMove {
+  ply: number
+  move_number: number
+  side: 'white' | 'black'
+  fen: string
+  played_move: string
+  best_move: string
+  best_move_uci: string
+  best_line: string[]
+  eval_cp_before: number
+  eval_cp_after: number
+  cp_loss: number
+  win_prob_loss: number
+  move_label: 'best' | 'good' | 'inaccuracy' | 'mistake' | 'blunder'
+  detected_motif: string | null
+  taxonomy_keys: string[]
+  taxonomy_labels: string[]
+}
+
+export interface ReviewStatus {
+  game_id: number
+  state: 'pending' | 'queued' | 'running' | 'done' | 'failed' | 'unknown'
+  progress: number
+  total: number
+  accuracy: number | null
+  label_counts: Record<string, number>
+  error: string | null
+  moves: ReviewedMove[]
+}
+
+export interface Weakness {
+  taxonomy_key: string
+  label: string
+  category: string
+  description: string
+  teaching_topic: string
+  confidence: number
+  evidence_count: number
+  success_count: number
+  status: 'active' | 'improving' | 'retired'
+}

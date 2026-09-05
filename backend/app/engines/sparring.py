@@ -18,6 +18,7 @@ import chess.engine
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.engines.base import HumanMove
+from app.engines.lifecycle import register_closer
 from app.engines.stockfish import EngineUnavailable, _parse_move, _validated_board
 
 log = get_logger(__name__)
@@ -184,6 +185,7 @@ def get_sparring_engine() -> SparringService:
     with _sparring_lock:
         if _sparring is None:
             _sparring = SparringService()
+            register_closer(_sparring.close)
     return _sparring
 
 

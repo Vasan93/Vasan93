@@ -60,6 +60,7 @@ class MoveVerdict:
     fen: str
     played_move: str  # SAN
     best_move: str  # SAN
+    best_move_uci: str  # the same move in UCI, so a board can draw it as an arrow
     best_line: list[str]  # SAN principal variation after the best move
     eval_cp_before: int  # from the mover's point of view
     eval_cp_after: int  # from the mover's point of view

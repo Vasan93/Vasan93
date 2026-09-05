@@ -4,6 +4,7 @@ import { useAuth } from '../store/auth'
 const links = [
   { to: '/', label: 'Coach', end: true },
   { to: '/games', label: 'Games' },
+  { to: '/weaknesses', label: 'Work on' },
   { to: '/profile', label: 'Profile' },
 ]
 

@@ -44,6 +44,7 @@ class AnalyzedMove(Base):
     fen: Mapped[str] = mapped_column(String(120))  # position BEFORE the move
     played_move: Mapped[str] = mapped_column(String(12))  # SAN
     best_move: Mapped[str] = mapped_column(String(12))  # SAN
+    best_move_uci: Mapped[str] = mapped_column(String(8), default="")
     best_line: Mapped[str] = mapped_column(String(255), default="")  # SAN principal variation
     eval_cp_before: Mapped[int] = mapped_column(Integer)
     eval_cp_after: Mapped[int] = mapped_column(Integer)

@@ -18,6 +18,9 @@ class Weakness(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     taxonomy_key: Mapped[str] = mapped_column(String(48), index=True)
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0)
+    # Raw accumulated evidence. Confidence is derived from it, so keeping the weight
+    # avoids drift when the curve is recomputed.
+    evidence_weight: Mapped[float] = mapped_column(Float, default=0.0)
     evidence_count: Mapped[int] = mapped_column(Integer, default=0)
     success_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(16), default="active")  # active | improving | retired

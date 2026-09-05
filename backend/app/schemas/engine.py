@@ -61,6 +61,7 @@ class VerdictOut(BaseModel):
     fen: str
     played_move: str
     best_move: str
+    best_move_uci: str
     best_line: list[str]
     eval_cp_before: int
     eval_cp_after: int
@@ -79,7 +80,7 @@ class VerdictOut(BaseModel):
 
         return cls(
             **{field: getattr(verdict, field) for field in (
-                "fen", "played_move", "best_move", "best_line", "eval_cp_before", "eval_cp_after",
+                "fen", "played_move", "best_move", "best_move_uci", "best_line", "eval_cp_before", "eval_cp_after",
                 "cp_loss", "win_prob_before", "win_prob_after", "win_prob_loss", "label",
                 "detected_motif", "taxonomy_keys",
             )},

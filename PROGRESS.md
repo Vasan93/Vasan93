@@ -10,8 +10,8 @@ Running log of what is done, what is next, known issues, and every assumption ma
 | 1 | Auth & profile | **done** |
 | 2 | Engine service (Stockfish) | **done** |
 | 3 | Board & game import | **done** |
-| 4 | Game review + weakness seeding | next |
-| 5 | Coaching brain | pending |
+| 4 | Game review + weakness seeding | **done** |
+| 5 | Coaching brain | next |
 | 6 | Assessment flow | pending |
 | 7 | Curriculum, puzzles & SRS | pending |
 | 8 | Practice sparring | pending |
@@ -145,6 +145,35 @@ Acceptance: a user can import a game and step through it on the board.
   The fallback now expires keys with the same semantics as Redis.
 - Verified: 67 backend tests pass. A browser run signs up, imports Legall's Mate, opens
   it, and steps to the final position with the move list highlighting `Nd5#`.
+
+## Phase 4 — Game review & weakness seeding (done)
+
+Acceptance: importing a game populates a visible list of weaknesses with confidence scores.
+
+- `app/services/review.py` labels every move the learner played, stores the verdict, and
+  scores game accuracy from win-probability loss using the Lichess curve.
+- `app/services/jobs.py` runs reviews on a worker pool and publishes progress through the
+  shared cache, so the UI can show a progress bar. The `submit`/`status` interface is what
+  callers depend on, so swapping in RQ or Celery later is a change inside that module.
+- `app/weakness/model.py` is pure logic with no engine or LLM inside. Confidence saturates
+  rather than growing without bound, so one blunder is noise and the same motif three
+  times is a pattern. Successes pull confidence back down; a weakness only retires after
+  spaced successes, and a failure reopens it.
+- `app/weakness/service.py` persists the profile, keeping the raw evidence weight
+  alongside the derived confidence so the curve can be recomputed without drift.
+- Endpoints: `POST /api/games/{id}/review`, `GET /api/games/{id}/review`,
+  `GET /api/weaknesses`.
+- Frontend: review progress bar, move list annotated with `?!`, `?` and `??`, a green
+  arrow showing the engine's preferred move, plain-language explanation of the swing, and
+  a weakness page grouped by category with confidence shown as a bar.
+- **Fixed a real hang.** `python-chess` runs each engine's event loop on a non-daemon
+  thread, and CPython joins those *before* running `atexit` handlers, so an
+  `atexit`-registered close never fires and any command-line entry point that touched the
+  engine would hang for ever. `app/engines/lifecycle.py` registers cleanup through
+  `threading._register_atexit`, the same hook `concurrent.futures` uses.
+- Verified: 82 backend tests pass. A browser run imports a blunder-filled game, reviews
+  it to 70.9% accuracy, shows `14. Nd2` as a blunder with the arrow to `Qxc5`, and lists
+  nine weaknesses led by hanging pieces at 80% confidence.
 
 ## Known issues
 

@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.core.logging import get_logger
 from app.engines import boardlib as bl
 from app.engines import motifs
+from app.engines.lifecycle import register_closer
 from app.engines.base import (
     MATE_FLOOR_LABEL,
     MATE_SCORE,
@@ -191,6 +192,7 @@ class StockfishEngine:
             fen=board.fen(),
             played_move=played_san,
             best_move=before.best.move_san,
+            best_move_uci=before.best.move_uci,
             best_line=before.best.pv_san,
             eval_cp_before=eval_before,
             eval_cp_after=eval_after,
@@ -306,4 +308,5 @@ def get_analysis_engine() -> StockfishEngine:
     with _engine_lock:
         if _engine is None:
             _engine = StockfishEngine()
+            register_closer(_engine.close)
     return _engine
