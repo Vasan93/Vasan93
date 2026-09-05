@@ -1,0 +1,60 @@
+name: grandmasterai
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: grandmaster
+      POSTGRES_PASSWORD: grandmaster
+      POSTGRES_DB: grandmasterai
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grandmaster -d grandmasterai"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/backend.Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://grandmaster:grandmaster@postgres:5432/grandmasterai
+      REDIS_URL: redis://redis:6379/0
+      STOCKFISH_PATH: /usr/games/stockfish
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      COACH_MODEL: ${COACH_MODEL:-claude-opus-5}
+      CORS_ORIGINS: http://localhost:5173
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - ../backend:/app/backend
+      - ../data:/app/data
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/frontend.Dockerfile
+    environment:
+      VITE_API_PROXY: http://backend:8000
+    ports: ["5173:5173"]
+    depends_on: [backend]
+    volumes:
+      - ../frontend/src:/app/src
+      - ../frontend/index.html:/app/index.html
+
+volumes:
+  pgdata:
