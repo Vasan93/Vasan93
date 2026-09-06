@@ -13,3 +13,7 @@ engines/bin/
 engines/weights/
 *.log
 .DS_Store
+
+# Redis writes its snapshot into whatever directory it was started from.
+dump.rdb
+*.rdb
