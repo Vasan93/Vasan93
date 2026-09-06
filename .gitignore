@@ -11,6 +11,9 @@ dist/
 .coverage
 engines/bin/
 engines/weights/
+# Engine binaries extracted into engines/ by the start script.
+engines/**/*.exe
+engines/**/stockfish*
 *.log
 .DS_Store
 

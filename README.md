@@ -40,10 +40,30 @@ disagrees with Stockfish, the engine wins.
    profile.
 7. **Track.** Rating trajectory, per-weakness progress, streaks and accuracy.
 
-## Quick start — Windows, without Docker
+## Quick start — Windows
 
-The lightest way to run it. Three things to install, all small, and no database or cache
-server: the data goes in one SQLite file and the cache lives in memory.
+**Double-click `start.bat`.**
+
+It checks what you have, installs the project's own dependencies, prepares the database
+and puzzle bank, opens the backend and the site in their own windows, and then opens the
+browser. If something is missing it says exactly which download you need and stops.
+
+You still need three things installed first, all small, and no database or cache server:
+the data goes in one SQLite file and the cache lives in memory.
+
+| What | Where |
+|---|---|
+| Python 3.11+ | python.org — tick **Add python.exe to PATH** during install |
+| Node.js 20+ | nodejs.org — the LTS installer |
+| Stockfish | stockfishchess.org/download — extract the Windows zip into this project's `engines` folder and the script will find it |
+
+Close and reopen any terminal after installing, or the new commands will not be found.
+
+To stop the app, close the two windows that opened.
+
+### Doing it by hand
+
+If you would rather run the steps yourself:
 
 **1. Install the prerequisites** (skip any you already have):
 
