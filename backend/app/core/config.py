@@ -1,6 +1,7 @@
 """Application settings. Everything comes from the environment; see .env.example."""
 from __future__ import annotations
 
+import secrets
 import shutil
 from functools import lru_cache
 from pathlib import Path
@@ -23,8 +24,10 @@ class Settings(BaseSettings):
     # Cache / queue
     redis_url: str = "redis://localhost:6379/0"
 
-    # Auth. HS256 wants at least 32 bytes; a short secret is a real weakness, not a nit.
-    jwt_secret: str = "change-me-in-production-with-a-long-random-value"
+    # Auth. Left blank on purpose: an unset secret is generated per process at startup
+    # rather than falling back to a value that is public in the repository. See
+    # `resolved_jwt_secret`.
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 7
 
@@ -40,6 +43,9 @@ class Settings(BaseSettings):
     # App
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     log_level: str = "INFO"
+
+    # Populated on demand by `resolved_jwt_secret`; never read from the environment.
+    _ephemeral_secret: str | None = None
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -59,13 +65,33 @@ class Settings(BaseSettings):
         return shutil.which("lc0")
 
 
+    def resolved_jwt_secret(self) -> str:
+        """The signing key, generating an ephemeral one when none is configured.
+
+        A shipped default signing key is an authentication bypass: anyone who reads the
+        repository can forge a token for any user. Generating a random key instead means
+        an unconfigured deployment is inconvenient (sessions end when the process
+        restarts) rather than silently insecure.
+        """
+        configured = self.jwt_secret.strip()
+        if configured and not configured.startswith("change-me"):
+            return configured
+        if self._ephemeral_secret is None:
+            object.__setattr__(self, "_ephemeral_secret", secrets.token_hex(32))
+        return str(self._ephemeral_secret)
+
     def warn_if_insecure(self) -> list[str]:
         """Configuration problems worth shouting about at startup."""
         problems: list[str] = []
-        if len(self.jwt_secret) < 32:
+        configured = self.jwt_secret.strip()
+        if not configured or configured.startswith("change-me"):
+            problems.append(
+                "JWT_SECRET is not set, so a random one was generated for this process. "
+                "Everyone is signed out whenever the server restarts. "
+                "Set one with `openssl rand -hex 32` before deploying."
+            )
+        elif len(configured) < 32:
             problems.append("JWT_SECRET is shorter than 32 bytes; generate one with `openssl rand -hex 32`.")
-        if self.jwt_secret.startswith("change-me"):
-            problems.append("JWT_SECRET is still the default value. Set a real secret before deploying.")
         return problems
 
 

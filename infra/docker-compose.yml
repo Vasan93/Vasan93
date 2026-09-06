@@ -1,23 +1,31 @@
 name: grandmasterai
 
+# Compose resolves its env file relative to *this* file, so the repository-root .env is
+# passed explicitly. Without that, ANTHROPIC_API_KEY is silently dropped and the app runs
+# in template mode with no explanation.
+
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: grandmaster
-      POSTGRES_PASSWORD: grandmaster
-      POSTGRES_DB: grandmasterai
-    ports: ["5432:5432"]
+      POSTGRES_USER: ${POSTGRES_USER:-grandmaster}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-grandmaster}
+      POSTGRES_DB: ${POSTGRES_DB:-grandmasterai}
+    # Bound to loopback: a published port bypasses host firewalls through Docker's own
+    # iptables chain, which would put this database on the network.
+    ports: ["127.0.0.1:5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U grandmaster -d grandmasterai"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-grandmaster} -d ${POSTGRES_DB:-grandmasterai}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    # Loopback only. An unauthenticated Redis reachable from the network can be made to
+    # write arbitrary files.
+    ports: ["127.0.0.1:6379:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -28,13 +36,15 @@ services:
     build:
       context: ..
       dockerfile: infra/backend.Dockerfile
+    # Secrets and coaching settings come from the repository-root .env.
+    env_file:
+      - path: ../.env
+        required: false
     environment:
-      DATABASE_URL: postgresql+psycopg://grandmaster:grandmaster@postgres:5432/grandmasterai
+      # These must point at Compose service names, so they override anything in .env.
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-grandmaster}:${POSTGRES_PASSWORD:-grandmaster}@postgres:5432/${POSTGRES_DB:-grandmasterai}
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      COACH_MODEL: ${COACH_MODEL:-claude-opus-5}
       CORS_ORIGINS: http://localhost:5173
     ports: ["8000:8000"]
     depends_on:

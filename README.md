@@ -42,16 +42,31 @@ disagrees with Stockfish, the engine wins.
 
 ## Quick start (Docker)
 
+Needs Docker Desktop running. Nothing else to install: Postgres, Redis and Stockfish all
+come from the containers.
+
 ```bash
-cp .env.example .env      # add ANTHROPIC_API_KEY for real coaching
+cp .env.example .env      # optional: add ANTHROPIC_API_KEY for real coaching
 make up                   # postgres, redis, backend, frontend
 ```
 
-Frontend at http://localhost:5173, API docs at http://localhost:8000/docs.
+On Windows there is no `make`, so run the command it wraps:
+
+```powershell
+copy .env.example .env
+docker compose -f infra/docker-compose.yml up --build
+```
+
+The first build takes a few minutes. When it settles, open **http://localhost:5173** and
+create an account. API docs are at http://localhost:8000/docs.
+
+To stop it: `Ctrl+C`, then `docker compose -f infra/docker-compose.yml down`. Add `-v` to
+that command to drop the database and start from scratch.
 
 ## Quick start (native, no Docker)
 
-Requires PostgreSQL, Redis and Stockfish on the host.
+Requires Python 3.11+, Node 20+, PostgreSQL, Redis and Stockfish on the host. Redis is
+optional; without it the app falls back to an in-process cache.
 
 ```bash
 cp .env.example .env
@@ -101,6 +116,17 @@ curl -O https://database.lichess.org/lichess_db_puzzle.csv.zst
 zstd -d lichess_db_puzzle.csv.zst
 python scripts/import_lichess_puzzles.py lichess_db_puzzle.csv
 ```
+
+## First run
+
+The app works immediately with no API key. Sign up, take the ten-position assessment, then
+paste a PGN on the Games page and press **Review this game** to see the engine find the
+mistakes and the coach name the patterns behind them. If you have no game handy, the Play
+page gives you one against the bot in a couple of minutes.
+
+`JWT_SECRET` can stay blank locally: the server generates a random key at startup, which
+signs everyone out when it restarts but never uses a key published in this repository.
+Set a real one with `openssl rand -hex 32` before deploying anywhere.
 
 ## Coaching without an API key
 

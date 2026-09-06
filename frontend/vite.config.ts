@@ -7,7 +7,8 @@ export default defineConfig({
     host: true,
     port: 5173,
     proxy: {
-      '/api': { target: 'http://localhost:8000', changeOrigin: true },
+      // Inside Compose the backend is another container, so the target is overridable.
+      '/api': { target: process.env.VITE_API_PROXY ?? 'http://localhost:8000', changeOrigin: true },
     },
   },
   test: {
