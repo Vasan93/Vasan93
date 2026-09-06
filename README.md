@@ -40,6 +40,64 @@ disagrees with Stockfish, the engine wins.
    profile.
 7. **Track.** Rating trajectory, per-weakness progress, streaks and accuracy.
 
+## Quick start — Windows, without Docker
+
+The lightest way to run it. Three things to install, all small, and no database or cache
+server: the data goes in one SQLite file and the cache lives in memory.
+
+**1. Install the prerequisites** (skip any you already have):
+
+| What | Where | Check it worked |
+|---|---|---|
+| Python 3.11+ | python.org — tick **Add python.exe to PATH** during install | `python --version` |
+| Node.js 20+ | nodejs.org — the LTS installer | `node --version` |
+| Stockfish | stockfishchess.org/download — get the Windows zip and extract it, for example to `C:\Vasan\Tools\stockfish` | the folder holds a `.exe` |
+
+Close and reopen PowerShell after installing, or the new commands will not be found.
+
+**2. Get the code and set it up:**
+
+```powershell
+cd C:\Vasan\Projects\grandmasterai
+copy .env.example .env
+
+pip install -r backend\requirements-dev.txt
+cd frontend
+npm install
+cd ..
+```
+
+**3. Point it at Stockfish.** Open `.env` in Notepad and set the path to the `.exe` you
+extracted, then save:
+
+```
+STOCKFISH_PATH=C:\Vasan\Tools\stockfish\stockfish-windows-x86-64-avx2.exe
+```
+
+The exact filename varies by download; use whatever is in that folder.
+
+**4. Start it.** This needs two PowerShell windows, both left running.
+
+Window one, the backend:
+
+```powershell
+cd C:\Vasan\Projects\grandmasterai\backend
+python -m app.bootstrap --seed
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+Window two, the site:
+
+```powershell
+cd C:\Vasan\Projects\grandmasterai\frontend
+npm run dev
+```
+
+Open **http://localhost:5173**.
+
+Check http://localhost:8000/api/health if anything looks wrong. It names every part and
+says which are missing, and `database` and `stockfish` are the two that must be working.
+
 ## Quick start (Docker)
 
 Needs Docker Desktop running. Nothing else to install: Postgres, Redis and Stockfish all
@@ -57,26 +115,28 @@ copy .env.example .env
 docker compose -f infra/docker-compose.yml up --build
 ```
 
-The first build takes a few minutes. When it settles, open **http://localhost:5173** and
-create an account. API docs are at http://localhost:8000/docs.
+The first build takes a few minutes. When it settles, open **http://localhost:5173**.
+API docs are at http://localhost:8000/docs.
 
 To stop it: `Ctrl+C`, then `docker compose -f infra/docker-compose.yml down`. Add `-v` to
 that command to drop the database and start from scratch.
 
-## Quick start (native, no Docker)
+Compose supplies PostgreSQL and Redis and overrides the database and cache settings in
+`.env`, so the same `.env` file is correct whichever way you start the app.
 
-Requires Python 3.11+, Node 20+, PostgreSQL, Redis and Stockfish on the host. Redis is
-optional; without it the app falls back to an in-process cache.
+## Quick start (macOS or Linux, without Docker)
 
 ```bash
 cp .env.example .env
 pip install -r backend/requirements-dev.txt
 cd frontend && npm install && cd ..
 
-make seed                 # create tables and load the puzzle bank
+make seed                 # create the SQLite database and load the puzzle bank
 make dev-backend          # http://localhost:8000
-make dev-frontend         # http://localhost:5173
+make dev-frontend         # http://localhost:5173   (a second terminal)
 ```
+
+Stockfish comes from `brew install stockfish` or `apt install stockfish`.
 
 ## Repository layout
 
